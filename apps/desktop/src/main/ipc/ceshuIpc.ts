@@ -196,7 +196,11 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
         generationOrder: req.fullGenerate?.generationOrder,
         fullGenerate: req.fullGenerate !== undefined,
         confirmed: req.confirmed === true,
-        senderId: event.sender.id
+        senderId: event.sender.id,
+        // 按单元生成：只索要这几项（缺省 = 整章），并带独立 taskId 以便并发时精确取消
+        ...(req.onlyFields !== undefined ? { onlyFields: req.onlyFields } : {}),
+        ...(req.taskId !== undefined ? { taskId: req.taskId } : {}),
+        ...(req.skipJudge !== undefined ? { skipJudge: req.skipJudge } : {})
       }
     )
   })

@@ -17,10 +17,28 @@ import type { QualityGateVerdict } from '@mobai/shared/types'
 
 let view: RenderResult | null = null
 let api: ApiStub | null = null
+/** 桩里指定「哪些章算净恶化」——质量门是纯函数，UI 测试只关心接线，不重复验证函数本身 */
+const worseChapters = new Set<string>()
+
+/**
+ * 单元化生成后，章级结论由渲染层对「整章合并结果」重算（单元返回值里的 quality 只覆盖本单元字段，
+ * 拿来当章结论会把「其它单元还没写」误判成倒退）。故这里把 evaluateChapterDraft 换成可控桩。
+ */
+vi.mock('@mobai/shared/agent/runtime', async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>()
+  return {
+    ...actual,
+    evaluateChapterDraft: (_doc: unknown, chapter: string) => ({
+      ...verdict(worseChapters.has(chapter) ? 2 : 0, 0),
+      chapter
+    })
+  }
+})
 
 afterEach(async () => {
   await view?.cleanup()
   api?.restore()
+  worseChapters.clear()
   view = null
   api = null
 })
@@ -56,19 +74,20 @@ async function runGeneration(rendered: RenderResult): Promise<void> {
   const confirm = rendered.query('[data-testid="ai-full-confirm-yes"]') as HTMLElement | null
   expect(confirm, '确认按钮').not.toBeNull()
   await rendered.click(confirm!)
-  // 逐章是 await 串行的，多冲几次微任务队列
-  for (let i = 0; i < 6; i++) await rendered.flush()
+  // 章与章串行、章内单元 2 路并发：每章要跑 1..N 个单元，多冲几次微任务队列
+  for (let i = 0; i < 30; i++) await rendered.flush()
 }
 
 describe('AiFullGeneratePanel：确定性质量门可见且可行动', () => {
   it('净恶化章：显示徽标 + 汇总 + 重生成按钮，点击只重跑这些章', async () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    // 只有 vision 净恶化（错误 +2），其余章全部持平
+    worseChapters.add('vision')
     const generate = vi.fn(async (req: unknown) => {
       const chapter = (req as { chapter: string }).chapter
       return {
         fields: { placeholder: `内容-${chapter}` },
-        // 只有 vision 净恶化（错误 +2），其余章全部持平
-        quality: verdict(chapter === 'vision' ? 2 : 0, 0),
+        quality: verdict(0, 0),
         usage: { totalTokens: 10 }
       }
     })
@@ -88,10 +107,14 @@ describe('AiFullGeneratePanel：确定性质量门可见且可行动', () => {
 
     const before = generate.mock.calls.length
     await view.click(regen!)
-    for (let i = 0; i < 4; i++) await view.flush()
-    const after = generate.mock.calls.length
-    // 只重跑净恶化的 1 章，而不是整篇再生成一遍
-    expect(after - before).toBe(1)
+    for (let i = 0; i < 30; i++) await view.flush()
+    const redoChapters = generate.mock.calls
+      .slice(before)
+      .map((call) => (call[0] as { chapter: string }).chapter)
+    // 只重跑净恶化的那 1 章，而不是整篇再生成一遍。
+    // 单元化后一章要发多次调用（视字段数），所以断言「重跑的章恰为 vision」而不是「恰 1 次调用」。
+    expect(redoChapters.length).toBeGreaterThan(0)
+    expect([...new Set(redoChapters)]).toEqual(['vision'])
   })
 
   it('全部持平（improved=false 但非恶化）：不误报，重生成按钮禁用且汇总区显示通过', async () => {
@@ -140,23 +163,28 @@ describe('AiFullGeneratePanel：空字段自动重试（JSON 截断）', () => {
     )
     await runGeneration(view)
 
-    // 24 章正常调用 + vision 一次重试 = 25 次；且没有被误判为失败
+    // 单元模式下每章会发多次调用（每单元一次）⇒ 只能断言「每章都跑到了」而不是「调用数 == 章数」。
+    // 断言的仍是原来的语义：**只在解析出 0 字段时重试，且只重试 1 次**。
     const chapterCount = view.queryAll('[data-testid^="ai-full-status-"]').length
-    expect(generate.mock.calls.length).toBe(chapterCount + 1)
+    const calledChapters = new Set(
+      generate.mock.calls.map((call) => (call[0] as { chapter: string }).chapter)
+    )
+    expect(calledChapters.size).toBe(chapterCount)
+    expect(generate.mock.calls.length).toBeGreaterThan(chapterCount)
     expect(view.query('[data-testid="ai-full-status-vision"]')!.className).toContain('done')
 
     // 重试那次的提示词必须带严格 JSON 约束（按内容定位，不假设调用序号）
-    const retryCall = generate.mock.calls.find((call) => {
+    const retryCalls = generate.mock.calls.filter((call) => {
       const req = call[0] as { fullGenerate: { extraPrompt: string } }
       return req.fullGenerate.extraPrompt.includes('严格只输出一个完整 JSON 对象')
     })
-    expect(retryCall, '应存在一次带严格 JSON 约束的重试').toBeDefined()
-    expect((retryCall![0] as { chapter: string }).chapter).toBe('vision')
+    expect(retryCalls, '应存在一次带严格 JSON 约束的重试').toHaveLength(1)
+    expect((retryCalls[0]![0] as { chapter: string }).chapter).toBe('vision')
   })
 
   it('调用直接抛错（服务不可用）→ 不重试，首章即中断', async () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
-    const generate = vi.fn(async () => {
+    const generate = vi.fn(async (_req: unknown): Promise<never> => {
       throw new Error('ECONNREFUSED')
     })
     api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
@@ -164,8 +192,53 @@ describe('AiFullGeneratePanel：空字段自动重试（JSON 截断）', () => {
       <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
     )
     await runGeneration(view)
-    // 首章即失败 ⇒ 中断，恰好 1 次调用，绝不重试放大故障
-    expect(generate.mock.calls.length).toBe(1)
+    // 首章即失败 ⇒ 中断，绝不重试放大故障。
+    // 单元模式下首个单元（2 路并发时最多 2 个）已在途，故断言「不超并发数 + 全部属于首章」。
+    const firstRow = view.query('[data-testid^="ai-full-status-"]') as HTMLElement
+    const firstChapter = firstRow.getAttribute('data-testid')!.replace('ai-full-status-', '')
+    expect(generate.mock.calls.length).toBeLessThanOrEqual(2)
+    const tried = new Set(generate.mock.calls.map((call) => (call[0] as { chapter: string }).chapter))
+    expect([...tried]).toEqual([firstChapter])
+    expect(view.query(`[data-testid="ai-full-status-${firstChapter}"]`)!.className).toContain('failed')
+  })
+})
+
+/**
+ * 单元化生成（2026-11-10）：整章 6–33 字段一次性索要会把正文压薄、还常在最后一个字段被截断。
+ * 改成「每章切单元、每单元一次调用、最多 2 路并发」后，锁住三条不变量：
+ * 每次调用都带 onlyFields + skipJudge、taskId 唯一（否则并发取消会停错人）、章内确实被切成了多份。
+ */
+describe('AiFullGeneratePanel：按单元生成', () => {
+  it('每次调用都带 onlyFields 与 skipJudge，taskId 唯一，且章内被切成多份', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (_req: unknown) => ({
+      fields: { placeholder: '内容' },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await runGeneration(view)
+
+    const requests = generate.mock.calls.map(
+      (call) => call[0] as { chapter: string; onlyFields?: string[]; taskId?: string; skipJudge?: boolean }
+    )
+    expect(requests.length).toBeGreaterThan(0)
+    for (const request of requests) {
+      expect(Array.isArray(request.onlyFields)).toBe(true)
+      expect(request.skipJudge).toBe(true)
+      expect(request.taskId).toBeTruthy()
+    }
+    const taskIds = requests.map((request) => request.taskId!)
+    expect(new Set(taskIds).size).toBe(taskIds.length)
+
+    // 至少有一章被切成了多份（combat 33 字段 ⇒ 6 单元；不再是一章一次）
+    const chapterCount = view.queryAll('[data-testid^="ai-full-status-"]').length
+    expect(requests.length).toBeGreaterThan(chapterCount)
+    // 成本块只报 token，不再出现「预算」
+    expect(view.text()).toContain('不设预算上限')
   })
 })
 

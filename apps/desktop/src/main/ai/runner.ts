@@ -67,12 +67,30 @@ export interface AiTaskSpec<T> {
    *
    * 只该用于「最小粒度、且渲染层没有确认回路」的任务（当前是单字段生成）；
    * 常规通道一律给具体档位，否则等于把成本护栏悄悄关掉。
+   *
+   * ⚠️ 2026-11-10 起「云端档预估 token 超预算」这条**已不再是确认原因**（见
+   * `shared/agent/config/protocol.ts::llmConfirmReason`），只剩 bulk / count 两条。
    */
   budget: AiTaskBudget | null
   /** 渲染层是否已带 `confirmed: true` 重发（DD-17） */
   confirmed?: boolean
   /** 取消归属（`event.sender.id`）；给了即可被面板「停止」经 `task:cancel` 打断 */
   senderId?: number
+  /**
+   * 本**笔**调用的任务 id（可选；缺省由取消表自动生成）。
+   *
+   * 为什么需要：`task:cancel` 的兜底路径按窗口（`bySender`）只记**一笔**，
+   * 面板并发跑 2-3 个单元时，后登记的会覆盖前一笔 ⇒ 点「停止」停错人。
+   * 带上稳定的 taskId 后每笔各占一个 `byId` 槽，取消于是精确命中。
+   */
+  taskId?: string
+  /**
+   * 本次调用的输出上限覆盖（透传给 `LlmCallOptions.maxTokens`）。
+   *
+   * 长篇生成（整章 / 整节）用：默认 1000 会被推理型模型的思考过程吃光，正文写不出来。
+   * 非法值（非整数 / <= 0 / > 32000）由 `llm/client.ts::resolveConfig` 静默忽略并回落配置值。
+   */
+  maxTokens?: number
   /** 拿到正文后的加工：解析 JSON、跑确定性质量门、调判官等 */
   interpret: (content: string, ctx: AiTaskContext) => Promise<T>
 }
@@ -119,9 +137,13 @@ export async function runAiTask<T>(
     skipBudgetConfirm: spec.budget === null,
     confirmed: spec.confirmed === true,
     ...(spec.senderId !== undefined ? { senderId: spec.senderId } : {}),
+    ...(spec.taskId !== undefined ? { taskId: spec.taskId } : {}),
     run: async (signal) => {
       const { model, content, usage } = await deps.client.generate(spec.system, spec.prompt, {
         ...callOpts,
+        // 放在 callOpts 之后：本次调用的上限覆盖调用方原样带来的配置（不是写回设置）
+        ...(spec.maxTokens !== undefined ? { maxTokens: spec.maxTokens } : {}),
+        // signal 保持最后优先级：取消信号只由 harness 提供，调用方不得覆盖
         ...(signal !== undefined ? { signal } : {})
       })
       // 判官等后续步骤复用同一 signal：既与正文共用取消表，也让「停止」能打断 judge

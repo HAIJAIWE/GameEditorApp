@@ -82,6 +82,8 @@ describe('应用档：章节生成提示词是 SDD 口径', () => {
     expect(built.prompt).not.toContain('玩家怎么恢复')
     expect(built.prompt).not.toContain('帧率')
     expect(built.prompt).not.toContain('技能冷却')
+    // 策划书的「细节与步骤要求（交付标准）」只给游戏档，应用档不掺这套口径
+    expect(built.prompt).not.toContain('细节与步骤要求（交付标准）：')
   })
 
   it('字段清单来自应用档字段表，而非游戏 CESHU_CHAPTER_FIELDS', () => {
@@ -97,7 +99,14 @@ describe('应用档：章节生成提示词是 SDD 口径', () => {
     expect(field).toBeDefined()
     const built = buildChapterPrompt(appDoc(), ARCH, { onlyFields: [field!.key] })
     expect(built.fields).toEqual([field!.key])
-    expect(built.prompt).toContain('字段写作要求')
+    // aiHint 并进字段行（中文名 + key + 类型 + 参考量级）；reviewHint 走「人审要点」段
+    expect(built.prompt).toContain(`${field!.label}（${field!.key} · `)
+    if (field!.aiHint !== undefined && field!.aiHint !== '') expect(built.prompt).toContain(field!.aiHint)
+    if (field!.reviewHint !== undefined && field!.reviewHint !== '') {
+      expect(built.prompt).toContain('人审要点:')
+      expect(built.prompt).toContain(field!.reviewHint)
+    }
+    expect(built.prompt).toContain('参考量级：')
   })
 
   it('补全空字段走应用档写作规范', () => {

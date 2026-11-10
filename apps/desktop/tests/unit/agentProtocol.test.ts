@@ -280,6 +280,10 @@ describe('策划书 / 数据域云端 LLM 调用的确认门（v0.5 DD-17）', (
    * （渲染层直连，`window.mbApi.ceshu.*` 53 处 vs `window.mbApi.agent` 1 处），
    * 所以 `TOOL_RISK_MAP` 与 `approvalBroker` 对它们**不生效**。
    * 本套判定让两条通路**共用同一个"要不要先问用户"的口径**，而不新造机制。
+   *
+   * 2026-11-10：确认门**只剩**「大动作」两条（整篇 / 一键 `bulk`、批量条数 `count`）。
+   * 原先 v0.6 M5 的「云端档预估 token 超预算 → 先确认」已删除：预算只是提示词长度的
+   * 粗估、不是账单，长文档（如整章提示词上万字符）下必然误报，而用户要求不限制预算。
    */
   it('单次调用无需确认', () => {
     expect(isBulkLlmCall({})).toBe(false)
@@ -314,8 +318,42 @@ describe('策划书 / 数据域云端 LLM 调用的确认门（v0.5 DD-17）', (
     expect(llmConfirmReason({ bulk: true, count: 12 })).toContain('整篇')
   })
 
+  it('云端档 + 预估 token 远超预算：**不再**要求确认（2026-11-10 删除的 M5 分支）', () => {
+    // 长文档的典型形态：整章提示词上万字符、预估 5k+ token（chapter 档预算只有 4000）
+    const scope = {
+      isCloud: true as const,
+      taskType: 'chapter' as const,
+      estimatedTokens: 12_000
+    }
+    expect(llmConfirmReason(scope)).toBeNull()
+    expect(isBulkLlmCall(scope)).toBe(false)
+    // 三种任务类型都不拦（full / data / review 同理走「不限制预算」）
+    for (const taskType of ['chapter', 'full', 'datagen', 'review'] as const) {
+      expect(llmConfirmReason({ ...scope, taskType, estimatedTokens: 99_999 })).toBeNull()
+    }
+  })
+
+  it('预估 token 不影响 bulk / count 的判定（两条理由与 token 无关）', () => {
+    // bulk 仍然拦：这是「一键生成会连续多次调用」，不是预算问题
+    expect(llmConfirmReason({ isCloud: true, taskType: 'full', estimatedTokens: 1, bulk: true })).toContain(
+      '整篇'
+    )
+    // count 仍然拦：这是「一次 20 条」的大动作，预估 token 再小也不放行
+    expect(llmConfirmReason({ isCloud: false, estimatedTokens: 0, count: 20 })).toContain('批量生成 20 条')
+    // 反过来：预估 token 再大也不能把 ≤ 阈值的批量或单次调用抬成「需确认」
+    expect(llmConfirmReason({ isCloud: true, taskType: 'chapter', estimatedTokens: 200_000, count: 5 })).toBeNull()
+  })
+
   it('判定与文案同源：isBulkLlmCall 与 llmConfirmReason 永不矛盾', () => {
-    const cases = [{}, { bulk: true }, { count: 5 }, { count: 11 }, { bulk: false, count: 11 }]
+    const cases = [
+      {},
+      { bulk: true },
+      { count: 5 },
+      { count: 11 },
+      { bulk: false, count: 11 },
+      // 预算字段塞满也不该让两者分歧（它们都不再读这些字段）
+      { isCloud: true, taskType: 'chapter' as const, estimatedTokens: 99_999 }
+    ]
     for (const scope of cases) {
       expect(isBulkLlmCall(scope), JSON.stringify(scope)).toBe(llmConfirmReason(scope) !== null)
     }

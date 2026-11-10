@@ -89,6 +89,14 @@ export interface SingleShotTaskSpec<T> {
    * —— 这正是 `runSingleShotTask` 当初为「预算 / 观测」建立的存在理由。
    */
   senderId?: number
+  /**
+   * 本笔任务 id（可选；缺省由取消表自动生成）。
+   *
+   * 兜底取消路径按窗口（`bySender`）只记**一笔**：同一窗口并发 2-3 个请求时，
+   * 后登记的会覆盖前一笔 ⇒ 点「停止」停错人。带上稳定的 taskId 后每笔各占一个 `byId` 槽。
+   * 不传时行为与旧版完全一致（取消表自生成 id，兜底路径仍是「窗口当前活跃的一笔」）。
+   */
+  taskId?: string
   /** 真正执行 LLM 调用的闭包（由调用方提供，harness 不关心 prompt 细节）。收到取消信号 */
   run: (signal: AbortSignal | undefined) => Promise<SingleShotRunOutput<T>>
 }
@@ -123,7 +131,10 @@ export async function runSingleShotTask<T>(spec: SingleShotTaskSpec<T>): Promise
   // 任务照常跑完——单测不必构造取消表，app 漏装配会让「停止」失灵，故装配点与
   // `taskRegistry()` 放在同一处（`stores.ts`）。
   const tickets = taskTickets()
-  const ticket = spec.senderId !== undefined && tickets !== undefined ? tickets.begin(spec.senderId) : undefined
+  const ticket =
+    spec.senderId !== undefined && tickets !== undefined
+      ? tickets.begin(spec.senderId, spec.taskId)
+      : undefined
   let output: SingleShotRunOutput<T>
   try {
     output = await spec.run(ticket?.signal)

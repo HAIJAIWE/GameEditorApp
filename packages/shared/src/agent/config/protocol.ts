@@ -13,8 +13,9 @@
  *    改名为 `requiresMainThread` 仅作语义标记（A1-4 面板复用）。
  */
 
-// 预算护栏的纯逻辑在 budget.ts；确认门（DD-17 + M5）复用其计算。
-import { taskBudget, evaluateBudget, type LlmTaskType } from '../runtime'
+// 2026-11-10：确认门**不再**按预估 token 拦截（见 `llmConfirmReason` 的说明），故不再 import budget.ts 的预算函数。
+// `LlmTaskType` 仍保留在 `LlmCallScope` 上：runTask 侧如实传入任务类型，只用于统计口径。
+import type { LlmTaskType } from '../runtime'
 import { RISK_LEVEL, TOOL_RISK_MAP, DEFAULT_TOOL_RISK, DEFAULT_MAX_ALLOWED_RISK, ACTION_ALIASES, LLM_BULK_COUNT_THRESHOLD, type RiskLevel } from './protocolData'
 export * from './protocolData'
 
@@ -52,14 +53,30 @@ export function resolveRiskLevel(toolId: string, action = ''): RiskLevel {
  * （`window.mbApi.ceshu.*` 53 处 / `data.*` 42 处，`window.mbApi.agent` 仅 1 处，见
  * `docs/agent-framework-design.md` §5.5.1）⇒ `TOOL_RISK_MAP` 与 `approvalBroker` 对它们**不生效**。
  * 本套判定把「要不要先问用户」抽成纯函数，让这两条通路**共用同一个口径**，而不新造机制。
+ *
+ * ## 2026-11-10 起：**不再**按预估 token 拦截
+ * v0.6 M5 曾在这里加过「云端档预估 token 超预算 → 先确认」的分支，已删除。理由：
+ * - 预算只是**提示词长度的粗估**（`estimateTokens` 按 2 字符/token 保守估算），不是账单；
+ *   长文档（如 16 条 600 字素材贴进提示词）下**必然误报**，把「能跑成的生成」拦成确认门；
+ * - 用户明确要求「直接不限制预算，让模型加快生成」，阻塞式确认只会让每次生成多点一次；
+ * - 真正要防的是**大动作**（整篇 / 一键生成、一次批量 20 条），那两条判定与 token 预估无关，保留。
+ *
+ * ⇒ 现在只有两种原因会要求确认：`bulk === true`（整篇 / 一键）与
+ * `count > LLM_BULK_COUNT_THRESHOLD`（批量条数）。`runTask.ts` 的 `throw` 也只剩这两条触发。
  */
 
 export interface LlmCallScope {
-  /** 是否属于大范围调用（如整篇 / 一键生成） */
+  /** 是否属于大范围调用（如整篇 / 一键生成）——两条「大动作」判定之一 */
   bulk?: boolean
-  /** 批量生成的条目数 */
+  /** 批量生成的条目数——超过 `LLM_BULK_COUNT_THRESHOLD` 才需确认 */
   count?: number
-  /** v0.6 M5：预算护栏用 —— 任务类型、预估 token、是否云端档 */
+  /**
+   * v0.6 M5 的预算护栏字段：**2026-11-10 起不再参与确认判定**，仅保留以实现
+   * `runTask` 侧如实传参（删除字段会波及 `agent-core` 的调用签名，收益为零）。
+   *
+   * 预算只是「提示词长度」的粗估（`estimateTokens` 按 2 字符/token），**不是账单**；
+   * 长文档下必然误报，而用户明确要求「不限制预算」。详见 `llmConfirmReason` 的说明。
+   */
   taskType?: LlmTaskType
   estimatedTokens?: number
   isCloud?: boolean
@@ -79,14 +96,9 @@ export function llmConfirmReason(scope: LlmCallScope): string | null {
   if (typeof count === 'number' && Number.isFinite(count) && count > LLM_BULK_COUNT_THRESHOLD) {
     return `批量生成 ${count} 条（超过 ${LLM_BULK_COUNT_THRESHOLD} 条）会调用云端模型，token 消耗较高`
   }
-  // v0.6 M5：云端档超预算也要先确认（降级 = 提示拆分，而非静默烧钱）
-  if (scope.isCloud && scope.taskType && typeof scope.estimatedTokens === 'number') {
-    const budget = taskBudget(scope.taskType, { count: scope.count })
-    const status = evaluateBudget(scope.estimatedTokens, budget, true)
-    if (status.over) {
-      return `预计花费约 ${status.estimated} token（预算 ${status.budget}），可能超出预算，建议拆分任务（如减少条数或改为单章生成）后再试`
-    }
-  }
+  // 2026-11-10：此处原有「云端档预估 token 超预算 → 先确认」的分支（v0.6 M5），已删除。
+  // 预算只是提示词长度的粗估、不是账单，长文档下必然误报；用户要求「不限制预算」。
+  // ⇒ 现在只有 bulk / count 两条能触发确认，本函数**不再看** taskType / estimatedTokens / isCloud。
   return null
 }
 

@@ -17,14 +17,16 @@ import {
   FULL_GEN_GAME_TYPES,
   FULL_GEN_PLATFORMS,
   FULL_GEN_STYLES,
+  buildChapterUnitPlan,
   buildFullGeneratePlan,
   mergeChapterDraft,
+  type ChapterUnitTask,
   type FullGeneratePlan,
   type GenerateStage
 } from '@mobai/shared/ceshu/prompts'
 import { renderOnePageSummary } from '@mobai/shared/ceshu/export/onePage'
 import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
-import { evaluateBudget, shouldRegenerateChapter, taskBudget } from '@mobai/shared/agent/runtime'
+import { evaluateChapterDraft, shouldRegenerateChapter } from '@mobai/shared/agent/runtime'
 import type { LlmJudgeVerdict, QualityGateVerdict } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
 import { readText } from '@mobai/shared/util/io'
@@ -36,6 +38,15 @@ import { readText } from '@mobai/shared/util/io'
  */
 
 type ChapterStatus = 'pending' | 'running' | 'done' | 'failed'
+
+/**
+ * 单元并发生成上限（2026-11-10）。
+ *
+ * 为什么是 2 而不是更高：本机嵌入式模型 / 云端代理的可用并发有限（`shared/util/system/rateLimiter`
+ * 给 llm 通道的是 3 QPS + burst 5），压到 3 路以上只会让请求在限流队列里排队，
+ * 观感上反而更慢；2 路足以把「章多 + 单元多」的墙钟时间砍掉近一半，且不影响「停止」。
+ */
+const UNIT_CONCURRENCY = 2
 
 const STATUS_LABELS: Record<ChapterStatus, MessageKey> = {
   pending: 'aiFull.status.pending',
@@ -90,6 +101,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [usageTotal, setUsageTotal] = useState(0)
   /** 整篇生成的内联确认态（v0.5 DD-17：大范围云端调用需先确认） */
   const [confirming, setConfirming] = useState(false)
+  /** 每章当前生成到第几个单元（单元模式的细粒度进度；未开始的章无键） */
+  const [unitProgress, setUnitProgress] = useState<Partial<Record<string, { done: number; total: number }>>>({})
   const stopRef = useRef(false)
   const resultsRef = useRef<Partial<Record<string, ChapterData>>>({})
   const judgesRef = useRef<Partial<Record<string, LlmJudgeVerdict | null>>>({})
@@ -136,13 +149,24 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     return renderOnePageSummary(mergeChapterDraft(doc, draft), 3)
   }, [isApp, stage, appliedCount, results, doc])
 
-  /** 逐章生成：单章失败记录并继续；首章即失败（本地服务不可用等）中断并汇总 */
+  /**
+   * 逐章生成：**章内按「单元」切分并少量并发**，章与章之间串行（后文要点依赖前序章）。
+   *
+   * 为什么不再一次索要整章（2026-11-10 实测）：整章 6–33 字段一次性索要时，推理型模型把
+   * 70–93% 的输出预算花在思考上，正文被压到每字段几十字，JSON 还常在最后一个字段中间被截断
+   * （解析失败 ⇒ 整章归零）；同样的内容按 11/11/11 分批后写出 4992 字（≈4 倍）。
+   * 故这里用 `buildChapterUnitPlan` 把每章切成若干「一次只写几项」的单元，逐单元调用。
+   *
+   * 并发只给 2：本地模型服务 / 网关的可用并发有限，再高会让限流排队和「停止」互相干扰；
+   * 每笔都带独立 `taskId`——取消表按窗口只记一笔，不带 id 并发时点「停止」会停错人。
+   */
   const runChapters = async (targets: readonly string[]): Promise<void> => {
     if (targets.length === 0) return
     setRunning(true)
     setPanelError(null)
     setSummary(null)
     setUsageTotal(0)
+    setUnitProgress({})
     stopRef.current = false
     const draftResults: Partial<Record<string, ChapterData>> = { ...resultsRef.current }
     const draftJudges: Partial<Record<string, LlmJudgeVerdict | null>> = { ...judgesRef.current }
@@ -155,45 +179,104 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       setStatuses((prev) => ({ ...prev, [chapter]: 'running' }))
       try {
         /*
-         * 单次生成（把「空字段重试」收在这里）：
-         * 字段多的章一次整章生成最容易 JSON 被截断 ⇒ 解析出 0 个有效字段 ⇒ 整章归零。
-         * 仅在「调用成功但字段为空」时追加严格 JSON 约束**自动重试 1 次**；
+         * 单元计划按「当前草稿」算：前序章的生成结果会改变本章可见字段（如 systems 的系统块），
+         * 用原始 doc 规划会让计划与实际可写字段脱节。
+         */
+        const planDraft: Record<string, ChapterData> = {}
+        for (const [key, value] of Object.entries(draftResults)) {
+          if (value !== undefined) planDraft[key] = value
+        }
+        const planDoc = Object.keys(planDraft).length > 0 ? mergeChapterDraft(doc, planDraft) : doc
+        const planned = buildChapterUnitPlan(planDoc, chapter, {
+          ...(plan.styleKey ? { styleOverride: plan.styleKey } : {}),
+          ...(plan.chapterPrompts[chapter] ? { extraPrompt: plan.chapterPrompts[chapter] } : {}),
+          generationOrder: [...plan.order],
+          generatedChapters: Object.keys(draftResults)
+        })
+        // 兜底：规划不出单元（该章无可写字段）时退回「整章一次调用」，保持旧行为不丢章
+        const units: ChapterUnitTask[] =
+          planned.length > 0 ? planned : [{ id: 'u1', label: '', fields: [], system: '', prompt: '' }]
+        const merged: ChapterData = {}
+        let unitDone = 0
+        let chapterError: unknown
+        setUnitProgress((prev) => ({ ...prev, [chapter]: { done: 0, total: units.length } }))
+
+        /*
+         * 单单元生成（把「空字段重试」收在这里）：
+         * 仅在「调用成功但解析出 0 个字段」时追加严格 JSON 约束**自动重试 1 次**；
          * 服务不可用 / 网络错 / 用户取消都在 await 处抛错，直接进 catch，不会重试放大故障。
          */
-        const generateOnce = async (extraPrompt: string) =>
-          window.mbApi.ceshu.aiGenerateChapter({
-            id: ceshuId,
-            chapter,
-            onlyEmpty: false,
-            fullGenerate: {
-              styleKey: plan.styleKey,
-              extraPrompt,
-              draft: buildDraftPayload(plan, draftResults),
-              // 前文要点按本次生成顺序取前序，不按章表顺序（两者不一致）
-              generationOrder: [...plan.order]
-            },
-            confirmed: true
-          })
-        const basePrompt = plan.chapterPrompts[chapter] ?? ''
-        let response = await generateOnce(basePrompt)
-        if (Object.keys(response.fields).length === 0 && !stopRef.current) {
-          response = await generateOnce(`${basePrompt}\n\n${t('aiFull.retryStrictJson')}`)
+        const callUnit = async (unit: ChapterUnitTask): Promise<void> => {
+          const basePrompt = plan.chapterPrompts[chapter] ?? ''
+          const request = (extraPrompt: string) =>
+            window.mbApi.ceshu.aiGenerateChapter({
+              id: ceshuId,
+              chapter,
+              onlyEmpty: false,
+              onlyFields: unit.fields,
+              taskId: 'ai-full-' + chapter + '-' + unit.id,
+              // 单元模式不复跑 judge：每单元一次会让往返翻倍，与「加快生成」直接冲突；
+              // 主结论由下面章级的确定性质量门给出。
+              skipJudge: true,
+              fullGenerate: {
+                styleKey: plan.styleKey,
+                extraPrompt,
+                draft: buildDraftPayload(plan, draftResults),
+                generationOrder: [...plan.order]
+              },
+              confirmed: true
+            })
+          let response = await request(basePrompt)
+          if (Object.keys(response.fields).length === 0 && !stopRef.current) {
+            response = await request(basePrompt + '\n\n' + t('aiFull.retryStrictJson'))
+          }
+          if (Object.keys(response.fields).length === 0) {
+            throw new Error(t('aiFull.errNoContent'))
+          }
+          for (const [key, value] of Object.entries(response.fields)) merged[key] = value
+          usageAcc += response.usage?.totalTokens ?? 0
+          setUsageTotal(usageAcc)
+          unitDone += 1
+          setUnitProgress((prev) => ({ ...prev, [chapter]: { done: unitDone, total: units.length } }))
         }
-        if (Object.keys(response.fields).length === 0) {
-          throw new Error(t('aiFull.errNoContent'))
+
+        // 小并发工作池：单元之间互不依赖，串行会把「章多 + 单元多」的耗时直接相加
+        const queue = [...units]
+        const worker = async (): Promise<void> => {
+          for (;;) {
+            if (stopRef.current || chapterError !== undefined) return
+            const unit = queue.shift()
+            if (unit === undefined) return
+            try {
+              await callUnit(unit)
+            } catch (error) {
+              if (chapterError === undefined) chapterError = error
+              return
+            }
+          }
         }
-        draftResults[chapter] = response.fields
-        // v1.0 DD-19 剩余项：judge 是辅助维度；主结论是确定性质量门 response.quality
-        draftJudges[chapter] = response.quality?.judge ?? null
-        draftVerdicts[chapter] = response.quality ?? null
+        await Promise.all(
+          Array.from({ length: Math.min(UNIT_CONCURRENCY, units.length) }, () => worker())
+        )
+        if (chapterError !== undefined) throw chapterError
+        if (stopRef.current) {
+          setStatuses((prev) => ({ ...prev, [chapter]: 'pending' }))
+          break
+        }
+        if (Object.keys(merged).length === 0) throw new Error(t('aiFull.errNoContent'))
+        draftResults[chapter] = merged
+        /*
+         * 质量门对「整章合并结果」重算一次：单元返回值里的 quality 只覆盖本单元字段，
+         * 直接当章结论会把「其它单元还没写」误判成倒退。judge 在单元模式下不跑（见上）。
+         */
+        draftJudges[chapter] = null
+        draftVerdicts[chapter] = evaluateChapterDraft(doc, chapter, merged)
         resultsRef.current = { ...draftResults }
         judgesRef.current = { ...draftJudges }
         verdictsRef.current = { ...draftVerdicts }
         setResults({ ...draftResults })
         setJudges({ ...draftJudges })
         setVerdicts({ ...draftVerdicts })
-        usageAcc += response.usage?.totalTokens ?? 0
-        setUsageTotal(usageAcc)
         setStatuses((prev) => ({ ...prev, [chapter]: 'done' }))
         setErrors((prev) => withoutKey(prev, chapter))
         succeeded++
@@ -231,7 +314,6 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       setSummary(t('aiFull.summaryDone', { succeeded }))
     }
   }
-
   /**
    * 整篇生成属「大范围云端调用」（v0.5 DD-17）⇒ **首次点击只进入内联确认态**，
    * 再点「确认生成」才真正发起。交互沿用项目既有做法（`ClearAllPanel` / `BatchEditPanel`），
@@ -517,6 +599,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               <div className={`ai-gen-status ${status}`} key={chapter} data-testid={`ai-full-status-${chapter}`}>
                 <span className="ai-gen-status-label">{chapterLabelForDoc(doc, chapter)}</span>
                 <span className={`ai-gen-status-value ${status}`}>{t(STATUS_LABELS[status])}</span>
+                {/* 单元粒度进度：整章被切成若干单元逐份生成，只看「生成中」不知道还剩多少 */}
+                {status === 'running' && unitProgress[chapter] !== undefined && (
+                  <span className="ai-gen-status-value" data-testid={`ai-full-units-${chapter}`}>
+                    {t('aiFull.units', {
+                      done: unitProgress[chapter]!.done,
+                      total: unitProgress[chapter]!.total
+                    })}
+                  </span>
+                )}
                 {status === 'done' && shouldRegenerateChapter(verdicts[chapter] ?? null) && (
                   <span
                     className="ai-full-judge-badge flagged"
@@ -630,24 +721,17 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           {summary}
         </div>
       )}
-      {/* v0.6 M5：整篇生成的累计 token 花费 + 预算条 */}
-      {usageTotal > 0 && (() => {
-        const budget = taskBudget('full', { chapters: plan.order.length })
-        const status = evaluateBudget(usageTotal, budget, true)
-        return (
-          <div className="datagen-cost" data-testid="ai-full-cost">
-            <span className="datagen-cost-label">
-              {t('aiFull.cost', { tokens: usageTotal, budget })}
-            </span>
-            <div className="budget-bar">
-              <div
-                className={`budget-bar-fill level-${status.level}`}
-                style={{ width: `${Math.min(100, Math.round(status.ratio * 100))}%` }}
-              />
-            </div>
-          </div>
-        )
-      })()}
+      {/*
+         * v0.6 M5 的 token 花费块：2026-11-10 起**去掉预算条**（用户明确要求不限制预算）。
+         * 预算原本只是「提示词长度的粗估」，不是账单——实测 4000 档 7 章花了 58381 token，
+         * 是面板上那个「预算 21000」的 2.8 倍；拿它画进度条只会给出错误的安心感。
+         * 现在只如实显示累计花费，供成本观测。
+         */}
+      {usageTotal > 0 && (
+        <div className="datagen-cost" data-testid="ai-full-cost">
+          <span className="datagen-cost-label">{t('aiFull.cost', { tokens: usageTotal })}</span>
+        </div>
+      )}
       {/* 一页立项预览：真实 GDD 从一页 pitch 起步，先在应用前确认方向 */}
       {!isApp && stage === 'concept' && (
         <div className="ai-full-judge" data-testid="ai-full-pitch">

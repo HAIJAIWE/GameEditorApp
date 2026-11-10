@@ -42,17 +42,28 @@ describe('resolveFieldMeta：字段协作契约', () => {
 })
 
 describe('单字段生成提示词：带上字段契约', () => {
-  it('onlyFields 时包含「字段写作要求 / AI 目标 / 人审要点」', () => {
+  /*
+   * 2026-11-10 接线后：aiHint 并进字段行（「该写什么」+ 参考量级），不再单独下发
+   * 「AI 目标:」——同一条目说两遍只会挤掉正文预算；人审要点仍单独下发，让模型按
+   * 会被检查的点自检。
+   */
+  it('onlyFields 时字段行带 aiHint / 参考量级，另附「人审要点」', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
     const built = buildChapterPrompt(doc, 'meta', { onlyFields: ['positioning'] })
-    expect(built.prompt).toContain('字段写作要求:')
-    expect(built.prompt).toContain('AI 目标:')
+    expect(built.prompt).toContain('一句话定位（positioning · 短文本 · 必填）')
+    expect(built.prompt).toContain('给谁玩')
+    expect(built.prompt).toContain('参考量级：')
+    expect(built.prompt).toContain('字段人审要点（生成时按同一标准自检）:')
     expect(built.prompt).toContain('人审要点:')
+    expect(built.prompt).not.toContain('AI 目标:')
+    expect(built.prompt).not.toContain('字段写作要求:')
   })
 
-  it('整章生成不追加字段写作要求（避免提示词膨胀）', () => {
+  it('整章生成不追加字段人审要点（避免提示词膨胀）', () => {
     const doc = createDefaultCeshu({ scope: 'full', name: '测试游戏' })
-    expect(buildChapterPrompt(doc, 'meta').prompt).not.toContain('字段写作要求:')
+    const prompt = buildChapterPrompt(doc, 'meta').prompt
+    expect(prompt).not.toContain('字段写作要求:')
+    expect(prompt).not.toContain('字段人审要点（生成时按同一标准自检）:')
   })
 })
 

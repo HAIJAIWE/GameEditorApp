@@ -29,6 +29,23 @@ export const ceshuAiGenerateInputSchema = z.object({
     })
     .optional(),
   /**
+   * 只生成这几项（按「单元」切粒度时用，2026-11-10 加）。
+   *
+   * 一次调用索要整章 6–33 个字段时，模型会把每个字段压到几十字、JSON 还常被截断；
+   * 渲染层按 buildChapterUnitPlan 把一章切成若干单元（每单元 ≤6 字段），
+   * 逐单元下发这份清单。缺省 = 整章（旧行为不变）。
+   */
+  onlyFields: z.array(z.string().max(80)).max(64).optional(),
+  /**
+   * 本笔调用的任务 id（渲染层生成，用于精确取消；并发跑多单元时必带）。
+   */
+  taskId: z.string().min(1).max(64).optional(),
+  /**
+   * 跳过 LLM-as-Judge 辅助评审（每章一次额外往返；按单元生成时省掉它）。
+   * 确定性质量门（校验错误数 / 立项完成度对比）**不受影响**，仍会算。
+   */
+  skipJudge: z.boolean().optional(),
+  /**
    * 大范围调用（一键生成 / 批量）的用户确认标志（v0.5 DD-17）。
    * 主进程判定需要确认时会**拒绝并给出中文原因**，渲染层确认后**带 `confirmed: true` 重发**，
    * 与 `main/agent/dispatcher.ts` 的 `dangerConfirmed` 同一模式。

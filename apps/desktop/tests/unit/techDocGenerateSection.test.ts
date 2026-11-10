@@ -22,13 +22,15 @@ import { generateTechDocSectionTask } from '../../src/main/techDoc/generateSecti
 interface GenerateCall {
   system: string
   prompt: string
+  /** 本次调用的第三参（含 maxTokens 覆盖等） */
+  options: Record<string, unknown>
 }
 
 function createPorts(reply: string | Error, cloud = false) {
   const calls: GenerateCall[] = []
   const client = {
-    generate: async (system: string, prompt: string) => {
-      calls.push({ system, prompt })
+    generate: async (system: string, prompt: string, options: Record<string, unknown> = {}) => {
+      calls.push({ system, prompt, options })
       if (reply instanceof Error) throw reply
       return {
         model: 'stub-model',
@@ -44,7 +46,12 @@ function createPorts(reply: string | Error, cloud = false) {
   return { ports, calls }
 }
 
-/** 16 条 600 字素材 ⇒ 提示词约 1 万字符、预估 5k token，超过 chapter 档 4000 预算 */
+/**
+ * 16 条 600 字素材 ⇒ 提示词约 1 万字符、预估 5k token。
+ *
+ * 2026-11-10 之前这会超过 chapter 档 4000 预算 ⇒ 云端档被确认门拦下；现在不再拦
+ * （长文档下预估预算必然误报），但这条素材仍用来守住「长提示词也直接开跑」这条行为。
+ */
 function hugeMaterials() {
   return Array.from({ length: 16 }, (_, index) => ({
     label: '素材' + index,
@@ -87,19 +94,22 @@ describe('generateTechDocSectionTask', () => {
     expect(result.title).toBe('custom-section')
   })
 
-  it('云端超预算且未确认：抛确认原因且不调用模型（DD-17）', async () => {
-    const { ports, calls } = createPorts('正文', true)
-    await expect(
-      generateTechDocSectionTask(ports as never, {
-        gameName: '星河战记',
-        sectionId: 'data-model',
-        materials: hugeMaterials()
-      })
-    ).rejects.toThrow('token')
-    expect(calls).toHaveLength(0)
+  it('云端 + 长素材（预估 token 远超预算）不再要求确认：一次调用直接生成（2026-11-10）', async () => {
+    // 原用例断言「抛出确认原因、不调用模型」（v0.6 M5 的云端预算门）。预算只是提示词长度粗估、
+    // 不是账单，长文档下必然误报 ⇒ 该门已删除，云端长素材必须一次点击就生成。
+    const { ports, calls } = createPorts('### 表结构\n\n敌人表：id / hp / atk。', true)
+    const result = await generateTechDocSectionTask(ports as never, {
+      gameName: '星河战记',
+      sectionId: 'data-model',
+      materials: hugeMaterials()
+    })
+    expect(calls).toHaveLength(1)
+    expect(result.body).toContain('敌人表')
+    // 长篇生成必须一次给足输出上限（默认 1000 会被推理型模型的思考过程吃光）
+    expect(calls[0]?.options['maxTokens']).toBe(16000)
   })
 
-  it('带 confirmed 重发时越过确认门并正常生成', async () => {
+  it('带 confirmed 时照常生成（该参数现在对长素材已非必需，但保持兼容）', async () => {
     const { ports, calls } = createPorts('### 表结构\n\n敌人表：id / hp / atk。', true)
     const result = await generateTechDocSectionTask(ports as never, {
       gameName: '星河战记',

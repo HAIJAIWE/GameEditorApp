@@ -4,6 +4,8 @@ import {
   LLM_MESSAGES,
   LLM_PROVIDER_PRESETS,
   LLM_GENERATE_TIMEOUT_MS,
+  LLM_MAX_TOKENS_MAX,
+  LLM_MAX_TOKENS_MIN,
   LLM_REQUEST_TIMEOUT_MS,
   generateTimeoutMs,
   resolveLlmBaseUrl,
@@ -26,6 +28,29 @@ import { sharedRateLimiter } from '@mobai/shared/util/system'
  * 避免 1000 → 4000 → 8000 逐级试探把每章拖成多轮往返。仅在上次被判定为「长度截断」时启用。
  */
 const RETRY_MAX_TOKENS = 16000
+
+/** 上游限流（HTTP 429 / 「请求频率超限」）的退避重试：最多 5 次，4s→8s→16s→32s→60s。 */
+const RATE_LIMIT_RETRIES = 5
+const RATE_LIMIT_BASE_DELAY_MS = 4_000
+
+/** 可被取消打断的等待：signal 一 abort 立刻返回，让调用方按「用户取消」处理而不是当成超时。 */
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise<void>((resolve) => {
+    if (signal?.aborted === true) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, ms)
+    const onAbort = (): void => {
+      clearTimeout(timer)
+      resolve()
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
 
 /**
  * LLM 客户端。
@@ -93,6 +118,7 @@ function resolveConfig(options: LlmCallOptions): LlmRuntimeConfig {
   return {
     ...stored,
     provider: effective,
+    maxTokens: resolveMaxTokens(stored.maxTokens, options.maxTokens),
     apiKey: options.apiKey ?? '',
     /*
      * Ollama 主机：设置面板的 baseUrl 优先；它是 `http://host:11434/v1` 形态，
@@ -116,6 +142,25 @@ function toOllamaHost(baseUrl: string): string {
   const trimmed = baseUrl.trim()
   if (trimmed === '') return process.env['MB_OLLAMA_HOST'] ?? DEFAULT_OLLAMA_HOST
   return trimmed.replace(/\/v1\/?$/, '')
+}
+
+/**
+ * 合并「本次调用」的**输出上限覆盖**。
+ *
+ * - 缺省 / 非法（非整数、<=0、>32000）⇒ 静默回落用户在设置里的 `maxTokens`。
+ *   编排层传它是**性能提示**（长篇生成必须一次给足上限），不是用户输入；
+ *   为它抛错只会让整次生成白跑（用户还得再点一次）。
+ * - 合法时**只影响这一次调用**，不写回 `StoredLlmConfig`（设置面板里的值保持不变），
+ *   否则一次整章生成就会把用户的短问答默认值悄悄改成 16000。
+ * - 同时决定本次的生成超时（`generateTimeoutMs` 按上限线性放宽）：
+ *   上限变大而超时不变，等于把「上限够了」换成「等到超时」。
+ */
+function resolveMaxTokens(stored: number, override: number | undefined): number {
+  if (override === undefined) return stored
+  if (!Number.isInteger(override) || override < LLM_MAX_TOKENS_MIN || override > LLM_MAX_TOKENS_MAX) {
+    return stored
+  }
+  return override
 }
 
 /**
@@ -456,7 +501,7 @@ export class LlmClient {
       choices?: Array<{ message?: { content?: string }; finish_reason?: string | null }>
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }
     }
-    const callOnce = async (maxTokens: number): Promise<OpenAiPayload> => {
+    const callOnce = async (maxTokens: number, attempt = 0): Promise<OpenAiPayload> => {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -483,6 +528,22 @@ export class LlmClient {
       })
       if (!response.ok) {
         const detail = await response.text().catch(() => '')
+        /*
+         * 上游限流是**临时**状态，不是配置错：网关后面常常还套着一层按用户限频的
+         * 上游（实测 2026-11-10：本机 3425 网关对多单元并发直接回
+         * 429 {"code":"user_model_rate_limited","message":"…请求频率超限…"}）。
+         * 改前一律当失败抛出，整章中止、已生成的单元全丢；现在退避重试，
+         * 退避期间用户点「停止」立刻按取消处理（signal 已 abort）。
+         */
+        const retryable =
+          response.status === 429 ||
+          response.status === 503 ||
+          /rate.?limit|频率超限|too many requests|temporarily unavailable/i.test(detail)
+        if (retryable && attempt < RATE_LIMIT_RETRIES) {
+          await pause(Math.min(RATE_LIMIT_BASE_DELAY_MS * 2 ** attempt, 60_000), signal)
+          if (signal.aborted) throw cancelledError(new Error('aborted while waiting to retry'))
+          return callOnce(maxTokens, attempt + 1)
+        }
         throw new Error(`${preset.label} 调用失败（HTTP ${response.status}）：${detail.slice(0, 120)}`)
       }
       return (await response.json()) as OpenAiPayload
@@ -511,14 +572,15 @@ export class LlmClient {
     let payload = await fetchPayload(config.maxTokens)
     const firstChoice = payload.choices?.[0]
     /*
-     * 也有网关回 200 却 `finish_reason=length` 且正文为空（推理吃光预算）：
-     * 同样放大上限重试一次，避免把「预算太小」误报成「模型名不正确」——真实踩过的坑。
+     * 被截断就放大上限重试一次 —— **正文非空也一样**（2026-11-10 修正）。
+     *
+     * 改前只处理「正文为空」：网关回 200 + `finish_reason=length` + 半截 JSON 时
+     * 直接 return 那半截，调用方解析不出闭合 JSON ⇒ `parseLlmJson` 返回 `{}`
+     * ⇒ 整章字段归零，而面板上只显示一句含糊的「未返回有效内容」。
+     * 现场（4000 档 7 章实测）：推理型模型把 70–82% 的 completion 花在思考上，
+     * 正文恰好在最后一个字段中间被切断，看起来像「模型不行」，实际是上限不够。
      */
-    if (
-      (firstChoice?.message?.content ?? '') === '' &&
-      firstChoice?.finish_reason === 'length' &&
-      config.maxTokens < RETRY_MAX_TOKENS
-    ) {
+    if (firstChoice?.finish_reason === 'length' && config.maxTokens < RETRY_MAX_TOKENS) {
       payload = await fetchPayload(RETRY_MAX_TOKENS)
     }
 

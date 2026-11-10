@@ -21,6 +21,15 @@ import {
 import { TECH_DOC_SECTIONS } from '@mobai/shared/agent/techDoc/techDocSchema'
 import type { TechDocMaterial } from '@mobai/shared/agent/techDoc/techDocDraft'
 
+/**
+ * 单节生成的输出上限（2026-11-10）。
+ *
+ * 与整章生成（`ceshu/ai/ceshu.ts::CHAPTER_GENERATE_MAX_TOKENS`）取同一量级 16000：
+ * 二者都是「长篇正文 + 推理型模型」，1000 的上限会被思考过程吃光。
+ * 合法范围 1..32000（`LLM_MAX_TOKENS_MAX`）。
+ */
+const TDD_SECTION_MAX_TOKENS = 16000
+
 export interface TechDocAiPorts {
   llm: AiLlmPort
   client: AiGeneratePort
@@ -57,8 +66,12 @@ function resolveTitle(sectionId: string): string {
 /**
  * 生成一节 TDD 正文。
  *
- * 预算档固定 `chapter`（4000 token）：一节正文远比一章 GDD 短，`full` 档会把确认门
- * 抬到「整篇」的量级，用户每节都要多点一次确认。云端超预算时仍会如实抛确认原因。
+ * 预算档固定 `chapter`：2026-11-10 起该档位**不再**触发「预估 token 超预算」的确认门
+ * （确认门只剩整篇 / 批量条数两条，见 `shared/agent/config/protocol.ts::llmConfirmReason`），
+ * 故一节素材再长也直接开跑，不再要用户先点一次确认。
+ *
+ * 输出上限取 `TDD_SECTION_MAX_TOKENS`（16000）而非配置里的 1000：推理型模型的思考过程
+ * 占掉大半 completion tokens，1000 下本节正文常常只剩两三百字甚至为空（本仓「AI 生成内容过少」的实测根因）。
  */
 export async function generateTechDocSectionTask(
   ports: TechDocAiPorts,
@@ -79,6 +92,8 @@ export async function generateTechDocSectionTask(
     budget: { taskType: 'chapter' },
     confirmed: input.confirmed === true,
     ...(input.senderId !== undefined ? { senderId: input.senderId } : {}),
+    // 长篇正文一次给足输出上限（默认 1000 下正文常被思考过程挤空，见常量注释）
+    maxTokens: TDD_SECTION_MAX_TOKENS,
     // 清洗放在 interpret 里：取消 / 超时都从 runAiTask 抛出，不会被这里吞掉
     interpret: async (content) => sanitizeSectionBody(content, title)
   })

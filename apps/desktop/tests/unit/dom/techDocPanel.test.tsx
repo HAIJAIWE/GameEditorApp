@@ -318,7 +318,10 @@ describe('技术设计文档面板：按节 AI 生成', () => {
     await view.cleanup()
   })
 
-  it('云端超预算：先提示确认，再点一次才带 confirmed 重发（不静默重发）', async () => {
+  it('长素材不再因预估 token 要求确认：一次点击即生成，不出现「确认生成」（2026-11-10）', async () => {
+    // 原用例走的是 v0.6 M5 的「云端预估 token 超预算 → 主进程抛确认原因 → 面板切片成确认态，
+    // 再点一次才带 confirmed 重发」回路。该门已删除（预算只是提示词长度的粗估、不是账单，
+    // 长文档下必然误报），因此这里反转为断言**旧回路不再出现**：一次点击 = 一次请求 = 正文落地。
     const sent: Array<{ confirmed?: boolean }> = []
     stub = installMbApi({
       overrides: {
@@ -327,12 +330,9 @@ describe('技术设计文档面板：按节 AI 生成', () => {
         'techDoc.outline': () => ({ content: '' }),
         'techDoc.write': () => ({ ok: true }),
         'techDoc.export': () => ({ path: null }),
+        // 主进程这一侧不再有「未 confirmed 就抛『可能超出预算』」的分支，直接返回正文
         'techDoc.generate': (req: unknown) => {
-          const body = req as { confirmed?: boolean }
-          sent.push(body)
-          if (body.confirmed !== true) {
-            throw new Error('预计花费约 5000 token（预算 4000），可能超出预算')
-          }
+          sent.push(req as { confirmed?: boolean })
           return { body: '正文', sectionId: 'overview', title: '概述与目标', model: '', usage: null }
         }
       }
@@ -344,16 +344,14 @@ describe('技术设计文档面板：按节 AI 生成', () => {
 
     await view.click(view.byTestId('techdoc-gen-run'))
     await view.flush()
-    // 第一次：报确认原因，按钮切片确认态；模型没被再调一次
+
+    // 一次点击只发一次请求，且不带 confirmed（不需要用户再确认一次）
     expect(sent).toHaveLength(1)
     expect(sent[0]?.confirmed).toBeUndefined()
-    expect(view.byTestId('techdoc-gen-run').textContent).toContain('确认生成')
-    expect(view.byTestId('techdoc-error').textContent).toContain('再点一次')
-
-    await view.click(view.byTestId('techdoc-gen-run'))
-    await view.flush()
-    expect(sent).toHaveLength(2)
-    expect(sent[1]?.confirmed).toBe(true)
+    // 按钮不进入确认态，也没有「再点一次」的确认提示（成功时错误条根本不渲染）
+    expect(view.byTestId('techdoc-gen-run').textContent).not.toContain('确认生成')
+    expect(view.query('[data-testid="techdoc-error"]')).toBeNull()
+    // 正文已经落到编辑器里
     const textarea = view.byTestId('techdoc-textarea') as HTMLTextAreaElement
     expect(textarea.value).toContain('正文')
     await view.cleanup()

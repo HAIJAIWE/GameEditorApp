@@ -414,6 +414,22 @@ export interface LlmCallOptions {
    * 取消是用户意图（`AbortError`，报 `TASK_CANCELLED_MESSAGE`，面板按「已停止」展示）。
    */
   signal?: AbortSignal
+  /**
+   * **本次调用**的输出上限覆盖（可选，2026-11-10 加）。
+   *
+   * ## 为什么需要它：默认上限 `1000` 会让长篇生成写不出正文
+   * 默认 `maxTokens = 1000` 是给「短问答」定的；而推理型模型（DeepSeek / Qwen / 豆包等）
+   * 把 completion tokens 花在**思考过程**上，实测思考占 70–93% ⇒ 正文只剩零到几十字，
+   * 面板上表现为「生成内容少 / 空」。整章 / 整节这类长篇生成必须一次给足上限。
+   *
+   * ## 规则
+   * - 只覆盖**这一次**调用的上限，不写回 `StoredLlmConfig`（用户设置里仍是原值）；
+   * - 合并点在主进程 `llm/client.ts::resolveConfig`：合法范围
+   *   [`LLM_MAX_TOKENS_MIN`, `LLM_MAX_TOKENS_MAX`]（1..32000）的整数才生效；
+   * - **非法值不当错误**（非整数 / <= 0 / > 32000）⇒ 静默忽略并回落 `config.maxTokens`。
+   *   理由：这是编排层的性能提示，不是用户输入；为它抛错只会让整次生成白跑。
+   */
+  maxTokens?: number
 }
 
 export const LLM_CONFIG_KEY = 'mb.llmConfig'

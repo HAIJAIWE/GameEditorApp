@@ -50,6 +50,16 @@ import { applyJudge, evaluateChapterDraft, evaluateDataCandidates } from '@mobai
 import { runLlmJudge } from '@mobai/agent-core/execution/qualityJudge'
 import { runAiTask, type AiGeneratePort, type AiLlmPort } from '../../ai/runner'
 
+/**
+ * 整章生成的单次输出上限（2026-11-10）。
+ *
+ * 为什么不是配置里的 `maxTokens`（默认 1000）：推理型模型把 completion tokens 花在思考上
+ * （实测思考占 70–93%），1000 的上限下正文只剩几十字甚至为空。整章是长篇生成，
+ * 必须一次给足；16000 与 `llm/client.ts` 的 `RETRY_MAX_TOKENS` 同量级（同一次调用的重试放大值）。
+ * 上限的合法范围是 1..32000（见 `LLM_MAX_TOKENS_MAX`），16000 在安全区内。
+ */
+const CHAPTER_GENERATE_MAX_TOKENS = 16000
+
 /** 四路任务共用的两个外部端口（配置门面 + 生成客户端） */
 export interface CeshuAiPorts {
   llm: AiLlmPort
@@ -75,6 +85,24 @@ export interface GenerateChapterInput {
   generationOrder?: readonly string[]
   confirmed?: boolean
   senderId?: number
+  /**
+   * 本笔调用的任务 id（可选）。并发跑多个单元时**必须**传：
+   * 取消表的兜底路径按窗口只记一笔，不带 id 时后登记的会覆盖前一笔，点「停止」会停错人。
+   */
+  taskId?: string
+  /**
+   * 跳过每章一次的 LLM judge（辅助评审）。
+   *
+   * 默认（`undefined` / `false`）**仍然跑** judge，与旧行为一致；一键 / 单元并发生成时传 `true`：
+   * judge 是**辅助**维度（确定性质量门仍是主结论），但每章多一次往返会让整章耗时翻倍，
+   * 并发下还会挤占上游并发额度。跳过时 `quality` 仍由确定性门给出（`applyJudge(x, null)`）。
+   */
+  skipJudge?: boolean
+  /**
+   * 只生成指定字段（单元生成用）。透传给 `buildChapterPrompt` 的 `onlyFields`，
+   * 与「单字段定向生成」同一套提示词收敛逻辑（忽略 `onlyEmpty`）。
+   */
+  onlyFields?: readonly string[]
 }
 
 export interface GenerateChapterOutput {
@@ -91,6 +119,10 @@ export interface GenerateChapterOutput {
  *
  * 注意 `onlyEmpty && 无空字段` 的**短路必须在预算门之前**：此时根本不会调用模型，
  * 不该因为「提示词很长」就先要求用户确认一次并不存在的花费。
+ *
+ * 2026-11-10 起「云端预估 token 超预算」**不再要求确认**（确认门只剩整篇 / 批量条数两条，
+ * 见 `shared/agent/config/protocol.ts::llmConfirmReason`），因此长文档会直接开跑，
+ * 不再出现「点一次只弹确认、再点一次才生成」的往返。
  */
 export async function generateChapterTask(
   ports: CeshuAiPorts,
@@ -102,6 +134,8 @@ export async function generateChapterTask(
     styleOverride: input.styleKey,
     extraPrompt: input.extraPrompt,
     generationOrder: input.generationOrder,
+    // 单元生成：只生成指定字段（与单字段定向生成同一套提示词收敛；空数组按「不过滤」处理）
+    ...(input.onlyFields !== undefined ? { onlyFields: [...input.onlyFields] } : {}),
     ...(input.generationOrder !== undefined
       ? { generatedChapters: Object.keys(input.draft) }
       : {})
@@ -118,14 +152,19 @@ export async function generateChapterTask(
     budget: { taskType: input.fullGenerate === true ? 'full' : 'chapter', bulk: input.fullGenerate === true },
     confirmed: input.confirmed === true,
     ...(input.senderId !== undefined ? { senderId: input.senderId } : {}),
+    ...(input.taskId !== undefined ? { taskId: input.taskId } : {}),
+    // 长篇生成一次给足输出上限：1000 会被推理型模型的思考过程吃光（正文空 / 半截）
+    maxTokens: CHAPTER_GENERATE_MAX_TOKENS,
     interpret: async (content, ctx) => {
       const parsed = parseLlmJson(content)
       const fields = filterGeneratedFields(doc, input.chapter, parsed)
       // DD-19：确定性评分门为主结论
       const deterministic = evaluateChapterDraft(input.base, input.chapter, fields)
       // judge 为辅：走同源 callOpts + 同一 signal（自动遵守保密）；业务失败降级 null，
-      // 但取消会向上抛（见 qualityJudge.ts 的「取消 ≠ 失败」）
-      const judge = await runLlmJudge(ctx.callOpts, input.chapter, fields, ctx.signal)
+      // 但取消会向上抛（见 qualityJudge.ts 的「取消 ≠ 失败」）。
+      // skipJudge 是性能开关（一键 / 单元并发生成用）：默认仍跑，显式传 true 才跳过。
+      const judge =
+        input.skipJudge === true ? null : await runLlmJudge(ctx.callOpts, input.chapter, fields, ctx.signal)
       return { fields, quality: applyJudge(deterministic, judge) }
     }
   })

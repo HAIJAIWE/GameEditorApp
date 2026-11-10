@@ -155,6 +155,41 @@ describe('LlmClient：OpenAI 兼容协议（OpenAI/豆包/Qwen/DeepSeek）', () 
       globalThis.fetch = originalFetch
     }
   })
+
+  /*
+   * 2026-11-10 实测：本机网关对多单元并发直接回 429
+   * （{"code":"user_model_rate_limited","message":"…请求频率超限…"}）。
+   * 限流是临时状态不是配置错 —— 退避后重试，绝不能整章中止。
+   */
+  it('上游限流（HTTP 429）⇒ 退避后重试成功，不把临时限流当故障', async () => {
+    const originalFetch = globalThis.fetch
+    let n = 0
+    globalThis.fetch = (async () => {
+      n += 1
+      if (n === 1) {
+        return new Response(
+          JSON.stringify({ error: { code: 'user_model_rate_limited', message: '您的模型请求频率超限，请稍后重试' } }),
+          { status: 429 }
+        )
+      }
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), { status: 200 })
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const res = await client.generate('s', 'p', {
+        config: cfg({
+          enabled: true,
+          provider: 'custom',
+          model: 'group/never-stuck',
+          baseUrl: 'http://127.0.0.1:3425'
+        })
+      })
+      expect(res.content).toBe('ok')
+      expect(n).toBe(2)
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+  }, 20_000)
 })
 
 describe('LlmClient：status 对 OpenAI 兼容端点不发网络请求', () => {
@@ -275,6 +310,59 @@ describe('LlmClient：推理型模型被 max_tokens 截断时的兜底', () => {
       expect(bodies[1]?.max_tokens).toBe(16000)
     } finally {
       globalThis.fetch = originalFetch
+    }
+  })
+})
+
+describe('LlmClient：单次调用的 maxTokens 覆盖（2026-11-10）', () => {
+  /**
+   * 为什么需要这组用例：默认 `maxTokens = 1000` 会让推理型模型的正文被思考过程挤空。
+   * 长篇生成（整章 / 整节）在 `LlmCallOptions.maxTokens` 传 16000 —— 它**只覆盖这一次**，
+   * 不写回用户配置。合并点在 `resolveConfig`，故这里断言的是「真的进了请求体」。
+   */
+  const capture = async (options: { maxTokens?: number; stored?: number }): Promise<Array<Record<string, unknown>>> => {
+    const bodies: Array<Record<string, unknown>> = []
+    const originalFetch = globalThis.fetch
+    globalThis.fetch = (async (_url: string, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)) as Record<string, unknown>)
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), { status: 200 })
+    }) as unknown as typeof fetch
+    try {
+      const client = new LlmClient()
+      const stored = cfg({
+        enabled: true,
+        provider: 'custom',
+        baseUrl: 'http://127.0.0.1:1',
+        model: 'm',
+        maxTokens: options.stored ?? 1000
+      })
+      await client.generate('s', 'p', {
+        config: stored,
+        apiKey: 'k',
+        ...(options.maxTokens !== undefined ? { maxTokens: options.maxTokens } : {})
+      })
+    } finally {
+      globalThis.fetch = originalFetch
+    }
+    return bodies
+  }
+
+  it('覆盖生效：配置 1000 + 本次 16000 ⇒ 请求体 max_tokens = 16000', async () => {
+    const bodies = await capture({ maxTokens: 16000, stored: 1000 })
+    expect(bodies).toHaveLength(1)
+    expect(bodies[0]?.['max_tokens']).toBe(16000)
+  })
+
+  it('不传覆盖 ⇒ 行为不变：请求体仍是配置里的 maxTokens', async () => {
+    const bodies = await capture({ stored: 1000 })
+    expect(bodies[0]?.['max_tokens']).toBe(1000)
+  })
+
+  it('非法覆盖一律静默回落配置值（0 / 40000 / 2.5），不当错误', async () => {
+    for (const maxTokens of [0, 40_000, 2.5]) {
+      const bodies = await capture({ maxTokens, stored: 1000 })
+      expect(bodies, String(maxTokens)).toHaveLength(1)
+      expect(bodies[0]?.['max_tokens'], String(maxTokens)).toBe(1000)
     }
   })
 })
