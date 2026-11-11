@@ -156,7 +156,10 @@
       sessionInfo: async () => ({ hasSession: false, messageCount: 0, savedAt: '' }),
       sessionRestore: async () => ({ messages: [] }),
       sessionClear: async () => ({ cleared: true }),
-      feedback: ok, onEvent: noopSub
+      feedback: ok, onEvent: noopSub,
+      // PermissionMenu 挂载即拉取真实档位（preload/index.ts:72 → agent:getPermissionMode）。
+      // 桩里不提供会让 .getPermissionMode() 抛 TypeError，整页 React 树挂载中断。
+      getPermissionMode: async () => ({ mode: 'ask' })
     },
     attrSystem: {
       get: async () => ({ attributes: [], formulas: [] }), save: ok,

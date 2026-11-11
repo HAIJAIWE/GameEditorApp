@@ -61,9 +61,11 @@ const SEL = {
   settingsOpen: '[data-testid="menuitem-settings-open"]',
   settingsPanel: '[data-testid="settings-panel"]',
   llmProvider: '[data-testid="llm-provider"]',
-  // v2.3 起保密档改由「模型来源」分段切换承载（本地 = confidential true）；旧 llm-confidential 复选框已移除
-  llmModeCloud: '[data-testid="llm-mode-cloud"]',
-  llmModeLocal: '[data-testid="llm-mode-local"]',
+  // 当前实现（SettingsPanel.tsx:440）是显式复选框：勾选后 effectiveProvider 强制回落 ollama，
+  // 服务商下拉保留但禁用、API Key 行隐藏、实际生效地址回落 localhost:11434。
+  // 早期脚本用的 llm-mode-cloud / llm-mode-local 分段控件已不存在。
+  llmConfidential: '[data-testid="llm-confidential"]',
+  llmConfidentialInput: '[data-testid="llm-confidential"] input',
   llmConfidentialNotice: '[data-testid="llm-confidential-notice"]',
   llmBaseUrlEffective: '[data-testid="llm-base-url-effective"]',
   llmApiKey: '[data-testid="llm-api-key"]'
@@ -226,7 +228,7 @@ try {
     await page.screenshot({ path: join(SHOTS, 'e59-t6-data-cost.png') })
   })
 
-  // ================= T7 整篇生成后的累计 token 花费 + 预算条（M5 成本护栏） =================
+  // ================= T7 整篇生成后的累计 token 花费（不设预算上限，无预算条） =================
   await runCase('T7', async (page) => {
     await openCeshu(page)
     await page.click(SEL.fullEntry)
@@ -239,9 +241,11 @@ try {
     await page.waitForSelector(SEL.fullCost, { timeout: 15000 })
     check('T7 整篇生成后 ⇒ 出现累计花费块（ai-full-cost）', true)
     const text = await page.locator(SEL.fullCost).textContent()
-    check('T7 文案带出「本次花费」与「token」', String(text).includes('本次花费') && String(text).includes('token'), String(text).trim())
-    const bar = await page.locator(SEL.budgetBarFill).count()
-    check('T7 渲染出预算进度条', bar >= 1, `bar数=${bar}`)
+    // 2026-11-10 起整篇生成不设预算上限（AiFullGeneratePanel.tsx:1354-1359 注释），
+    // 文案是「本次已花费 {tokens} token（不设预算上限）」，预算进度条也随之移除。
+    // 数据生成侧（T6）仍保留预算条，两条口径不同，不要混用。
+    check('T7 文案带出「本次已花费」与「token」', String(text).includes('本次已花费') && String(text).includes('token'), String(text).trim())
+    check('T7 文案如实说明不设预算上限', String(text).includes('不设预算上限'), String(text).trim())
     await page.screenshot({ path: join(SHOTS, 'e59-t7-full-cost.png') })
   })
 
@@ -290,13 +294,13 @@ try {
     await page.selectOption(SEL.llmProvider, 'deepseek')
     check('T9 先选云端服务商 ⇒ API Key 行出现（确实在云端档）', (await page.locator(SEL.llmApiKey).count()) === 1)
     check(
-      'T9 默认处于云端档（显式档位，非默认开启保密）',
-      (await page.locator(SEL.llmModeCloud).getAttribute('aria-selected')) === 'true'
+      'T9 默认未开启保密（复选框未勾选，非默认本地档）',
+      (await page.locator(SEL.llmConfidentialInput).isChecked()) === false
     )
     check('T9 保密未开 ⇒ 无「数据不出本机」提示', (await page.locator(SEL.llmConfidentialNotice).count()) === 0)
 
-    // 切到本地档（= 保密）⇒ 服务商下拉消失、API Key 行消失、出现告知
-    await page.click(SEL.llmModeLocal)
+    // 勾选保密 ⇒ 服务商下拉保留但禁用、API Key 行消失、出现告知
+    await page.locator(SEL.llmConfidentialInput).check()
     await page.waitForSelector(SEL.llmConfidentialNotice, { timeout: 5000 })
     const noticeText = await page.locator(SEL.llmConfidentialNotice).textContent()
     check(
@@ -304,7 +308,7 @@ try {
       String(noticeText).includes('本机') && String(noticeText).includes('云端'),
       String(noticeText).trim()
     )
-    check('T9 切到本地档 ⇒ 服务商下拉消失（不能偷偷改回云端）', (await page.locator(SEL.llmProvider).count()) === 0)
+    check('T9 切到本地档 ⇒ 服务商下拉保留但被禁用（不能偷偷改回云端）', (await page.locator(SEL.llmProvider).count()) === 1 && (await page.locator(SEL.llmProvider).isDisabled()))
     check('T9 切到本地档 ⇒ 云端才需要的 API Key 行消失', (await page.locator(SEL.llmApiKey).count()) === 0)
     // 回归：保密模式必须**忽略云端 baseUrl**（否则本地 Ollama 会被指向 api.deepseek.com）
     const effText = await page.locator(SEL.llmBaseUrlEffective).textContent()
@@ -316,7 +320,7 @@ try {
     await page.screenshot({ path: join(SHOTS, 'e59-t9-confidential.png') })
 
     // 切回云端 ⇒ 恢复云端档（存的服务商没被保密模式改写）
-    await page.click(SEL.llmModeCloud)
+    await page.locator(SEL.llmConfidentialInput).uncheck()
     await page.waitForFunction((sel) => document.querySelectorAll(sel).length === 0, SEL.llmConfidentialNotice, { timeout: 5000 })
     check('T9 切回云端 ⇒ 告知消失', true)
     await page.waitForSelector(SEL.llmProvider, { timeout: 5000 })
