@@ -580,6 +580,8 @@ export const CESHU_EXPORT_FORMATS = [
   'pptx',
   'pdf',
   'excel',
+  'governance',
+  'booklets',
   'bundle'
 ] as const
 export type CeshuExportFormat = (typeof CESHU_EXPORT_FORMATS)[number]
@@ -599,6 +601,8 @@ export const CESHU_FORMAT_LABELS: Record<CeshuExportFormat, string> = {
   pptx: 'PowerPoint 演示（pptx）',
   pdf: 'PDF 文档',
   excel: 'Excel 表格（xlsx）',
+  governance: '文档治理附录（版本/修订/待补项/术语表）',
+  booklets: '专题分册（数值/系统/叙事/交付）',
   bundle: '双轨：Markdown + JSON'
 }
 
@@ -617,6 +621,8 @@ export const CESHU_FORMAT_EXTENSIONS: Record<CeshuExportFormat, string> = {
   pptx: '.pptx',
   pdf: '.pdf',
   excel: '.xlsx',
+  governance: '.md',
+  booklets: '.md',
   /** 双轨的主产物是人读的 Markdown；机读 JSON 与它同主文件名（.json） */
   bundle: '.md'
 }

@@ -238,6 +238,20 @@ const PRIOR_DIGEST_VALUE_LIMIT = 80
 const PRIOR_DIGEST_TOTAL_LIMIT = 1400
 
 /**
+ * 锚点章：整篇生成里**最早定下全局口径**的 5 章，后续每一章都必须持续对齐它们。
+ * - vision：产品定位与核心幻想（所有章的「为什么做」）；
+ * - gameplay：核心循环（系统、关卡、运营都围着它转）；
+ * - combat：战斗模式与伤害公式（数值、系统、平衡反复引用）；
+ * - economy：货币体系与产出/回收（商业化、数值曲线、活动奖励的基准）；
+ * - numeric：数值曲线与公式（战斗、经济、成长的统一标尺）。
+ * 24 章全量档只取「最近 6 章」时，这 5 章会被挤出去，后章看不到就会自相矛盾，
+ * 所以无论生成到第几章都要保留它们（与最近 N 章去重后仍按生成顺序排列）。
+ */
+const PRIOR_DIGEST_ANCHOR_CHAPTERS: readonly string[] = [
+  'vision', 'gameplay', 'combat', 'economy', 'numeric'
+]
+
+/**
  * 生成「前文要点」：把**当前章之前**已写好的章节压成带上限的摘要，注入生成提示词。
  *
  * 为什么需要：整篇生成是逐章串行的，但 `buildChapterPrompt` 此前只读 meta 与当前章，
@@ -249,7 +263,8 @@ const PRIOR_DIGEST_TOTAL_LIMIT = 1400
  * - 每章最多 4 个字段、每值 80 字、整体 ≤1400 字 —— 宁可少给，也不炸上下文；
  * - 空章 / 系统字段跳过；单字段定向生成不注入（目标明确，不需要全局上下文）。
  */
-function buildPriorChaptersDigest(
+// 导出仅为单测能直接覆盖「锚点章 + 最近 N 章」的选择逻辑；不进 prompts 桶，公开 API 不变。
+export function buildPriorChaptersDigest(
   doc: CeshuDocument,
   chapter: string,
   generationOrder?: readonly string[],
@@ -266,14 +281,24 @@ function buildPriorChaptersDigest(
   // 只取「本次生成序列里排在前面」且确实已生成的章。
   // 默认文档每章带 schema.defaults（非空），光靠内容判断会把未生成章的默认值当前文。
   const generated = generatedChapters === undefined ? null : new Set(generatedChapters)
-  const prior = order
+  // 文档信息（meta）已在「上下文信息」里给过，不重复塞进前文摘要；
+  // eligible 保持生成顺序，后面所有重排都以它为基准。
+  const eligible = order
     .slice(0, idx)
+    .filter((key) => key !== 'meta')
     .filter((key) => generated === null || generated.has(key))
-    .slice(-PRIOR_DIGEST_MAX_CHAPTERS)
+  /*
+   * 「锚点章 + 最近 N 章」：24 章全量档只留最近 6 章时，早期定下全局口径的
+   * 锚点（货币体系 / 战斗公式 / 数值曲线…）会被挤出去，后章看不到就会自相矛盾。
+   * 锚点只从 eligible 里取 ⇒ 未生成 / 未来章的锚点不会混进来；两路取并集后去重。
+   */
+  const anchors = eligible.filter((key) => PRIOR_DIGEST_ANCHOR_CHAPTERS.includes(key))
+  const recent = eligible.slice(-PRIOR_DIGEST_MAX_CHAPTERS)
+  const selected = new Set<string>([...anchors, ...recent])
+  // 回到 eligible 过滤一遍 = 天然按生成顺序输出，老锚点不会插到末尾。
+  const prior = eligible.filter((key) => selected.has(key))
   const lines: string[] = []
   for (const key of prior) {
-    // 文档信息（meta）已在「上下文信息」里给过，不重复塞进前文摘要
-    if (key === 'meta') continue
     const data = chapterDataForDoc(doc, key)
     if (!isPlainObject(data)) continue
     const picked: string[] = []
@@ -294,7 +319,11 @@ function buildPriorChaptersDigest(
   }
   if (lines.length === 0) return ''
   const text = lines.join('\n')
-  return text.length > PRIOR_DIGEST_TOTAL_LIMIT ? `${text.slice(0, PRIOR_DIGEST_TOTAL_LIMIT)}…` : text
+  // 省略号也计入 1400 字预算：改前 slice(0,1400)+'…' 会返回 1401 字，硬上限形同虚设。
+  // 上限数值与字段 picking 逻辑都不动，只让「返回长度 ≤1400」真正成立。
+  return text.length > PRIOR_DIGEST_TOTAL_LIMIT
+    ? `${text.slice(0, PRIOR_DIGEST_TOTAL_LIMIT - 1)}…`
+    : text
 }
 
 export interface ChapterPromptResult {

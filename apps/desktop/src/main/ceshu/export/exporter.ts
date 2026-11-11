@@ -25,6 +25,7 @@ import {
   renderImplementationManifestJson,
   renderImplementationManifestMarkdown
 } from '@mobai/shared/ceshu/export/implementationManifest'
+import { renderDocGovernanceMarkdown, renderSpecBookletsMarkdown } from '@mobai/shared/ceshu/export/governance'
 
 /**
  * 策划书导出管道：按格式渲染 → 临时文件 + rename 原子写 → 返回结果。
@@ -101,6 +102,10 @@ async function renderContent(
       return renderImplementationManifestMarkdown(buildImplementationManifest(doc))
     case 'manifest-json':
       return renderImplementationManifestJson(buildImplementationManifest(doc))
+    case 'governance':
+      return renderDocGovernanceMarkdown(doc)
+    case 'booklets':
+      return renderSpecBookletsMarkdown(doc)
     case 'html':
       return renderCeshuHtml(doc)
     case 'docx':
