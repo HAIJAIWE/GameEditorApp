@@ -8,6 +8,10 @@ import { renderGenerationDigest } from '@mobai/shared/ceshu/export/generationDig
 import { installMbApi, renderDom, type ApiStub, type RenderResult } from './render'
 import type { QualityGateVerdict } from '@mobai/shared/types'
 
+// 全量跑（409 个文件并发）时 CPU 争抢会把 DOM 用例拖慢数倍，默认 5s 不够。
+// 放宽到 20s，避免首例超时后仍在跑的异步链污染后续用例（单跑实测约 1s/例）。
+vi.setConfig({ testTimeout: 20_000 })
+
 /**
  * 确定性质量门的 UI 落地（2026-11-07）。
  *
@@ -63,8 +67,22 @@ function verdict(errorDelta: number, completionDelta: number): QualityGateVerdic
   }
 }
 
-/** 完整走一遍生成：填描述 → 内联确认 → 确认生成 → 等逐章循环落定 */
-async function runGeneration(rendered: RenderResult): Promise<void> {
+/**
+ * 多冲几次微任务队列：章与章串行、章内单元 2 路并发，每章要跑 1..N 个单元。
+ *
+ * 2026-11-11 分步向导后把默认次数从 40 降到 8：一次 flush 要过一个 macrotask
+ * （setTimeout 0），而「采纳 → 存盘 → 生成下一章」的 promise 链最多 3~5 轮就落定。
+ * 40 次 × 7 章会让整份 DOM 测试在全量并发（409 文件抢 CPU）时撞 vitest 默认
+ * 5s testTimeout；首例超时后 afterEach 的 cleanup 与仍在跑的异步生成链重叠 act()，
+ * 于是后续 18 例连锁失败（「描述输入框 null」「overlapping act() calls」）。
+ * 这是测试节奏问题，不是产品缺陷——真 GUI 实测逐章流程全部正常。
+ */
+async function flushMany(rendered: RenderResult, times = 8): Promise<void> {
+  for (let i = 0; i < times; i++) await rendered.flush()
+}
+
+/** 填描述 → 内联确认 → 确认生成（只生成第一章就停下，等人采纳） */
+async function startGeneration(rendered: RenderResult): Promise<void> {
   const desc = rendered.query('[data-testid="ai-full-desc"]') as HTMLTextAreaElement | null
   expect(desc, '描述输入框').not.toBeNull()
   // render helper 的 change() 只支持 HTMLInputElement，这里描述框是 textarea，自己派发一次原生 input
@@ -78,8 +96,35 @@ async function runGeneration(rendered: RenderResult): Promise<void> {
   const confirm = rendered.query('[data-testid="ai-full-confirm-yes"]') as HTMLElement | null
   expect(confirm, '确认按钮').not.toBeNull()
   await rendered.click(confirm!)
-  // 章与章串行、章内单元 2 路并发：每章要跑 1..N 个单元，多冲几次微任务队列
-  for (let i = 0; i < 30; i++) await rendered.flush()
+  await flushMany(rendered)
+}
+
+/**
+ * 走完整个分步向导：每章「采纳并保存」，遇到阶段门就继续。
+ *
+ * 2026-11-11 改成分步生成后，一次「点开始」只生成**一章**（用户原话「要步骤都来」），
+ * 所以这里必须逐章点采纳——旧版只点一次开始就断言「全部章都跑过」已经不成立了。
+ *
+ * `adoptLimit` 用于「只走到第 N 章」的用例（例如验证未应用结果会长存草稿快照）。
+ */
+async function runGeneration(rendered: RenderResult, adoptLimit = Number.POSITIVE_INFINITY): Promise<number> {
+  await startGeneration(rendered)
+  let adopted = 0
+  for (let guard = 0; guard < 80; guard++) {
+    const gate = rendered.query('[data-testid="ai-full-gate-go"]') as HTMLElement | null
+    const adopt = rendered.query('[data-testid="ai-full-adopt"]') as HTMLElement | null
+    if (adopt !== null) {
+      if (adopted >= adoptLimit) return adopted
+      await rendered.click(adopt)
+      adopted += 1
+    } else if (gate !== null) {
+      await rendered.click(gate)
+    } else {
+      return adopted
+    }
+    await flushMany(rendered)
+  }
+  return adopted
 }
 
 describe('AiFullGeneratePanel：确定性质量门可见且可行动', () => {
@@ -453,7 +498,13 @@ describe('AiFullGeneratePanel：未应用结果不白跑', () => {
     const first = await renderDom(
       <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
     )
-    await runGeneration(first)
+    /*
+     * 只生成第一章、**不点采纳**：这正是「跑完一章但还没写盘」的状态，
+     * 也是草稿快照唯一有意义的场景。全部分步采纳完后快照会被主动清掉
+     * （否则重开面板会提示「有未应用结果」，可恢复的却是零）。
+     */
+    await startGeneration(first)
+    expect(first.query('[data-testid="ai-full-adopt"]'), '第一章应停在待确认态').not.toBeNull()
     const raw = window.localStorage.getItem('mb.aiFull.draft.c1')
     expect(raw, '生成结果应自动留存').not.toBeNull()
     const draft = JSON.parse(raw!) as { results: Record<string, unknown> }
@@ -538,6 +589,102 @@ describe('AiFullGeneratePanel：未应用结果不白跑', () => {
     expect(written).toEqual(chapters)
     expect(view.byTestId('ai-full-summary').textContent).toContain('8 章')
     expect(window.localStorage.getItem('mb.aiFull.draft.c1')).toBeNull()
+  })
+})
+
+/**
+ * 分步生成向导（2026-11-11，用户原话「可以，但不一键生成，要步骤都来」）。
+ *
+ * 锁四条不变量——全都是「点一次开始就把 15 章一口气跑完」的旧行为会破坏的地方：
+ *   1. 确认方向后**只生成第一章**，不把整档一次跑完；
+ *   2. 只有点「采纳并保存」才写盘，且只写当前这一章（不是整档批量写）；
+ *   3. 采纳后自动进入下一章，不需要人再点一次开始；
+ *   4. 「跳过」不写盘，但流程继续往下走（跳过 ≠ 中断）。
+ */
+describe('AiFullGeneratePanel：一步一章的分步向导', () => {
+  /** 取进度列表里第 i 行的章 key（进度行顺序就是 plan.order） */
+  function chapterAt(rendered: RenderResult, index: number): string {
+    const row = rendered.queryAll('[data-testid^="ai-full-status-"]')[index]
+    expect(row, `进度第 ${index + 1} 行`).toBeDefined()
+    return row!.getAttribute('data-testid')!.replace('ai-full-status-', '')
+  }
+
+  it('确认方向后只生成第一章，其余章仍是待生成', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (req: unknown) => ({
+      fields: { placeholder: `内容-${(req as { chapter: string }).chapter}` },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    api = installMbApi({ overrides: { 'ceshu.aiGenerateChapter': generate } })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await startGeneration(view)
+
+    const first = chapterAt(view, 0)
+    // 单元化后一章可能发多次调用，所以比较「跑过哪些章」而不是调用次数
+    const calledChapters = [...new Set(generate.mock.calls.map((c) => (c[0] as { chapter: string }).chapter))]
+    expect(calledChapters).toEqual([first])
+    // 生成完停在「等人看」的卡片上，而不是继续往下跑
+    expect(view.query('[data-testid="ai-full-adopt"]'), '第一章生成完应停下等人采纳').not.toBeNull()
+    const doneRows = view
+      .queryAll('[data-testid^="ai-full-status-"]')
+      .filter((row) => row.className.includes('done'))
+    expect(doneRows).toHaveLength(1)
+  })
+
+  it('采纳后只写这一章，并自动生成下一章', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (req: unknown) => ({
+      fields: { placeholder: `内容-${(req as { chapter: string }).chapter}` },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    const saveChapter = vi.fn(async (_req: unknown) => doc)
+    api = installMbApi({
+      overrides: { 'ceshu.aiGenerateChapter': generate, 'ceshu.saveChapter': saveChapter }
+    })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await startGeneration(view)
+    const first = chapterAt(view, 0)
+    const second = chapterAt(view, 1)
+    expect(saveChapter, '生成本身不写盘').not.toHaveBeenCalled()
+
+    await view.click(view.byTestId('ai-full-adopt'))
+    await flushMany(view)
+
+    const written = [...new Set(saveChapter.mock.calls.map((c) => (c[0] as { chapter: string }).chapter))]
+    expect(written, '只写当前这一章').toEqual([first])
+    const calledChapters = [...new Set(generate.mock.calls.map((c) => (c[0] as { chapter: string }).chapter))]
+    expect(calledChapters).toContain(second)
+  })
+
+  it('跳过不写盘，但流程继续到下一章', async () => {
+    const doc = createDefaultCeshu({ scope: 'full', name: '测试项目' })
+    const generate = vi.fn(async (req: unknown) => ({
+      fields: { placeholder: `内容-${(req as { chapter: string }).chapter}` },
+      quality: verdict(0, 0),
+      usage: { totalTokens: 10 }
+    }))
+    const saveChapter = vi.fn(async (_req: unknown) => doc)
+    api = installMbApi({
+      overrides: { 'ceshu.aiGenerateChapter': generate, 'ceshu.saveChapter': saveChapter }
+    })
+    view = await renderDom(
+      <AiFullGeneratePanel ceshuId="c1" doc={doc} onApplied={() => {}} onClose={() => {}} />
+    )
+    await startGeneration(view)
+    const second = chapterAt(view, 1)
+
+    await view.click(view.byTestId('ai-full-skip'))
+    await flushMany(view)
+
+    expect(saveChapter, '跳过不写盘').not.toHaveBeenCalled()
+    const calledChapters = [...new Set(generate.mock.calls.map((c) => (c[0] as { chapter: string }).chapter))]
+    expect(calledChapters).toContain(second)
   })
 })
 

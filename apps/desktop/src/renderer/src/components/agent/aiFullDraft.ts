@@ -33,6 +33,16 @@ export interface AiFullDraft {
   errors: Record<string, string>
   usageTotal: number
   summary: string | null
+  /**
+   * 分步向导的位置（2026-11-11 新增，可选）。
+   *
+   * 旧快照没有这两个字段 ⇒ 读出来是 undefined，恢复时按「从第一章找第一个
+   * 有结果但没写盘的章」处理，与旧行为等价。可选而非必填，是为了不把
+   * AI_FULL_DRAFT_VERSION 抬版本——升版本会让用户手里上一版留下的 15 章
+   * 结果全部作废（isAiFullDraft 会直接判无效），那代价比字段可选大得多。
+   */
+  applied?: string[]
+  skipped?: string[]
 }
 
 /** localStorage 的最小契约：只取用到的三个方法，便于注入、不绑定完整 Storage */
@@ -74,6 +84,11 @@ function isAiFullDraft(value: unknown, ceshuId: string): value is AiFullDraft {
   }
   for (const message of Object.values(errors)) {
     if (typeof message !== 'string') return false
+  }
+  for (const list of [value.applied, value.skipped]) {
+    if (list === undefined) continue
+    if (!Array.isArray(list)) return false
+    if (!list.every((item) => typeof item === 'string')) return false
   }
   return true
 }

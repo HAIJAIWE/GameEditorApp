@@ -9,9 +9,11 @@ import {
   contentChapterCount,
   type CeshuDocument,
   type ChapterData,
+  type ChapterKey,
   type GddScope
 } from '@mobai/shared/ceshu/reference'
-import { chaptersUpToStage } from '@mobai/shared/ceshu/workflow'
+import { CESHU_STAGE_LABELS, chaptersUpToStage, stageOfChapter } from '@mobai/shared/ceshu/workflow'
+import type { CeshuStage } from '@mobai/shared/ceshu/workflow'
 import {
   FULL_GEN_BUSINESS_MODELS,
   FULL_GEN_GAME_TYPES,
@@ -26,7 +28,17 @@ import {
   type GenerateStage
 } from '@mobai/shared/ceshu/prompts'
 import { renderGenerationDigest } from '@mobai/shared/ceshu/export/generationDigest'
-import { chapterDataForDoc, chapterLabelForDoc, getDocKind, getGddScope, isPlainObject, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
+import { displayFieldValue } from '@mobai/shared/ceshu/fields'
+import {
+  chapterDataForDoc,
+  chapterFieldsForDoc,
+  chapterLabelForDoc,
+  getDocKind,
+  getGddScope,
+  isPlainObject,
+  visibleChaptersForDoc
+} from '@mobai/shared/ceshu/model'
+import { countWordsInChapter } from '@mobai/shared/ceshu/validation'
 import { evaluateChapterDraft, shouldRegenerateChapter } from '@mobai/shared/agent/runtime'
 import type { LlmJudgeVerdict, QualityGateVerdict } from '@mobai/shared/types'
 import { toErrorMessage } from '@mobai/shared/util/system'
@@ -38,6 +50,7 @@ import {
   saveAiFullDraft,
   type AiFullDraft
 } from './aiFullDraft'
+import { countRemainingInStage, locateWizardPosition, planNextStep } from './aiFullWizard'
 
 /**
  * AI 一键生成完整策划书（2026-11-11 改为两阶段）：
@@ -124,9 +137,37 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   const [draftNotice, setDraftNotice] = useState<string | null>(null)
   /** 每章当前生成到第几个单元（单元模式的细粒度进度；未开始的章无键） */
   const [unitProgress, setUnitProgress] = useState<Partial<Record<string, { done: number; total: number }>>>({})
+  /**
+   * 分步向导（2026-11-11，用户原话「可以，但不一键生成，要步骤都来」）。
+   *
+   * 三个位置字段**一律存章 key，不存下标**：plan.order 随 stage / scope / 可见章变化
+   * （恢复草稿时就会变），存下标会在阶段切换后指到别的章上。
+   *
+   * cursorChapter = 当前这一步的章；null 表示向导没在跑（表单态）。
+   */
+  const [cursorChapter, setCursorChapter] = useState<string | null>(null)
+  /** 本轮已写盘的章（采纳后立刻落盘，所以「已生成」与「已保存」不再是一回事） */
+  const [applied, setApplied] = useState<readonly string[]>([])
+  /** 人主动跳过的章：不写盘，但不该被当成失败或阻塞下一步 */
+  const [skipped, setSkipped] = useState<readonly string[]>([])
+  /** 本章已生成、等人看：true 时显示正文预览 + 采纳 / 重生成 / 跳过 */
+  const [reviewing, setReviewing] = useState(false)
+  /** 整轮走完（全部章或采纳或跳过后置 true，用于收尾文案） */
+  const [finished, setFinished] = useState(false)
+  /** 非 null ⇒ 正停在阶段门上（跨 concept → production → release 时停一次） */
+  const [stageGate, setStageGate] = useState<CeshuStage | null>(null)
+  /** 阶段门通过后要去的章（门只是暂停，「下一步是哪章」在开门前就定好了） */
+  const [gateNextChapter, setGateNextChapter] = useState<string | null>(null)
+  /** 逐章写盘后的文档快照：本章预览与字数统计都要基于「含刚保存内容」的文档 */
+  const [docSnapshot, setDocSnapshot] = useState<CeshuDocument | null>(null)
   const stopRef = useRef(false)
+  /** token 累计用 ref：runChapters 每步都会读它，读 state 会拿到点击那一刻的旧值 */
+  const usageRef = useRef(0)
   /** 第 2 步「确认设计概要」卡片：出现时滚进视口，别让标题被长面板上沿裁掉 */
   const briefRef = useRef<HTMLDivElement | null>(null)
+  /** 本轮已写盘 / 已跳过的章（ref 供 handler 同步读，state 供渲染） */
+  const appliedRef = useRef<readonly string[]>([])
+  const skippedRef = useRef<readonly string[]>([])
   const resultsRef = useRef<Partial<Record<string, ChapterData>>>({})
   const judgesRef = useRef<Partial<Record<string, LlmJudgeVerdict | null>>>({})
   const verdictsRef = useRef<Partial<Record<string, QualityGateVerdict | null>>>({})
@@ -164,15 +205,48 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     [gameName, gameType, style, effectiveDescription, references, platforms, businessModel, scope, includeMarket, includeRisk, docKind, isApp, stage, doc]
   )
 
+  /**
+   * 当前这一步的章。存的是 key，但检索时**必须过一遍 plan.order**：
+   * 用户中途改阶段 / 档位会让 order 变形，旧 key 可能已不在计划里，
+   * 那时向导应视为未启动，而不是卡在一章永远生成不出来的章上。
+   */
+  const currentChapter = cursorChapter !== null && plan.order.includes(cursorChapter) ? cursorChapter : null
+  const currentIndex = currentChapter === null ? -1 : plan.order.indexOf(currentChapter)
   const failedChapters = plan.order.filter((chapter) => statuses[chapter] === 'failed')
   /** 确定性质量门判定为「净恶化」的章：生成后校验错误变多 / 立项完成度倒退 */
   const regenChapters = plan.order.filter(
     (chapter) => statuses[chapter] === 'done' && shouldRegenerateChapter(verdicts[chapter] ?? null)
   )
   const appliedCount = plan.order.filter((chapter) => results[chapter] !== undefined).length
+  /**
+   * 已生成但**还没写盘**的章。「全部应用并保存」按钮只该在真的有事可做时可用：
+   * 分步向导是逐章写盘的，跑完一轮后再留一个亮着的「全部应用」会让人以为漏存了。
+   */
+  const pendingApplyChapters = plan.order.filter(
+    (chapter) => results[chapter] !== undefined && !applied.includes(chapter)
+  )
   const locked = running || applying
+  /**
+   * 向导进行中（有当前章）时表单、阶段选择、关闭一律锁住：
+   * 中途改 stage/scope 会让 plan.order 变形，也让人分不清「我确认的那份概要」是哪一份。
+   * 注意**不**把 apply 按钮算进 locked：草稿恢复后可能还剩一批已生成未保存的章，
+   * 那时仍需能用（见 handleApply 的兜底语义）。
+   */
+  const wizardActive = cursorChapter !== null || reviewing
+  const formLocked = locked || wizardActive
+  /**
+   * 阶段门要进的下一阶段标签。stageGate 记的是**目标**阶段（planNextStep 返回的 toStage），
+   * 所以这里直接查标签即可；不用再按序号 +1 推——那样在「跨两阶段」或
+   * 「从 release 阶段的门」这类边界上会算错。
+   */
+  const gateStageLabel = stageGate === null ? null : CESHU_STAGE_LABELS[stageGate]
   /** 步骤条当前所在步：2 = 等人工确认概要，3 = 生成中，4 = 待应用 */
-  const currentStep = confirming ? 2 : running ? 3 : appliedCount > 0 ? 4 : 1
+  /*
+   * 向导期间（等你看 / 正在生成当前章）都算第 3 步：分步流程里「第 3 步」的语义是
+   * 「逐章生成」，不是「跑完一次」。写成 appliedCount > 0 ? 4 会让采纳完第一章后
+   * 步骤条直接跳到第 4 步，后面还没生成的十几章看着像已完成。
+   */
+  const currentStep = confirming ? 2 : wizardActive || running ? 3 : appliedCount > 0 || finished ? 4 : 1
   /**
    * 点「开始一键生成」后卡片出现在长面板底部，标题/提示容易被视口上沿裁掉
    * （实测截图 01-brief-card.png 只露出「项目设定」行）。用户要「先看一眼」，
@@ -202,6 +276,30 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
   }, [results, doc, plan.order])
 
   /**
+   * 当前章的正文预览（分步向导的「看一眼再决定」）。
+   *
+   * 用 displayFieldValue 而不是 JSON 直出：字段值可能是 stringList / pipeList，
+   * 直出会变成 `["a","b"]` 这种没人要读的东西。空值不占位——预览只回答
+   * 「这章写出了什么」，没写出的空字段在编辑页里自然可见。
+   *
+   * 字数用 countWordsInChapter 统一口径（中文按字 + 英文按词），和导出/完成度一致；
+   * 不自己数 length，否则中英混排的数字和面板别处对不上。
+   */
+  const chapterPreview = useMemo(() => {
+    const chapter = currentChapter
+    const data = chapter === null ? undefined : results[chapter]
+    if (chapter === null || data === undefined) return { words: 0, rows: [] as { label: string; value: string }[] }
+    const previewDoc = docSnapshot ?? doc
+    const rows: { label: string; value: string }[] = []
+    for (const field of chapterFieldsForDoc(previewDoc, chapter)) {
+      const value = displayFieldValue(field, data[field.key])
+      if (value === '') continue
+      rows.push({ label: field.label, value })
+    }
+    return { words: countWordsInChapter(data), rows }
+  }, [currentChapter, results, doc, docSnapshot])
+
+  /**
    * 未应用结果的草稿快照：每章完成即写 localStorage（按 ceshuId 隔离）。
    * **不写进策划书正文**——用户要的是「人确认之后才生成设计文档」，自动入库会绕过这道门。
    * 快照只在用户点「恢复」时回填内存；点「全部应用并保存」后清除。
@@ -210,6 +308,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     if (applying) return
     const generated = Object.keys(results)
     if (generated.length === 0) return
+    /*
+     * 全部生成结果都已写盘 ⇒ 快照没有存在意义，直接清掉。
+     * 分步向导是逐章写盘的，跑完一轮后 results 仍留在内存里（速览还要用），
+     * 若不在这里清，下次打开面板会弹「有未应用结果」的恢复横幅，可恢复的东西却是零。
+     */
+    if (generated.every((chapter) => applied.includes(chapter))) {
+      clearAiFullDraft(ceshuId)
+      return
+    }
     const payload: AiFullDraft = {
       version: AI_FULL_DRAFT_VERSION,
       ceshuId,
@@ -221,10 +328,12 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
       statuses: statuses as Record<string, 'pending' | 'running' | 'done' | 'failed'>,
       errors: errors as Record<string, string>,
       usageTotal,
-      summary
+      summary,
+      applied: [...applied],
+      skipped: [...skipped]
     }
     saveAiFullDraft(payload)
-  }, [ceshuId, results, statuses, errors, usageTotal, summary, stage, scope, briefConfirmed, applying])
+  }, [ceshuId, results, statuses, errors, usageTotal, summary, stage, scope, briefConfirmed, applying, applied, skipped])
 
   /** 恢复上次未应用的结果：只回内存，仍要用户点「全部应用并保存」才写盘 */
   const handleRestoreDraft = (): void => {
@@ -252,8 +361,32 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     setStatuses(restoredStatuses)
     setErrors({ ...draft.errors })
     setUsageTotal(draft.usageTotal)
+    usageRef.current = draft.usageTotal
     setSummary(draft.summary)
     setBriefConfirmed(draft.briefConfirmed)
+    /*
+     * 还原向导位置：快照里的 applied 是「已经写进策划书」的章，恢复后不该再让人
+     * 采纳一次；有结果但未写盘的章则直接进入 review 态，人点一下就能接着走。
+     *
+     * 旧快照没有 applied 字段 ⇒ 按空数组处理，会把「已写盘但没记下来」的章重新
+     * 停在 review；这是保守方向（多重确认一次，不会漏写），可接受。
+     */
+    const restoredApplied = draft.applied ?? []
+    const restoredSkipped = draft.skipped ?? []
+    appliedRef.current = restoredApplied
+    setApplied(restoredApplied)
+    skippedRef.current = restoredSkipped
+    setSkipped(restoredSkipped)
+    const position = locateWizardPosition(
+      plan.order,
+      Object.keys(draft.results),
+      restoredApplied,
+      0
+    )
+    setFinished(false)
+    setStageGate(null)
+    setCursorChapter(position.cursor < plan.order.length ? (plan.order[position.cursor] as string) : null)
+    setReviewing(position.reviewing)
     setDraftPending(null)
     setDraftNotice(t('aiFull.draftRestored', { count: Object.keys(draft.results).length }))
   }
@@ -282,12 +415,15 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
    * 并发只给 2：本地模型服务 / 网关的可用并发有限，再高会让限流排队和「停止」互相干扰；
    * 每笔都带独立 `taskId`——取消表按窗口只记一笔，不带 id 并发时点「停止」会停错人。
    */
-  const runChapters = async (targets: readonly string[]): Promise<void> => {
-    if (targets.length === 0) return
+  const runChapters = async (targets: readonly string[], step = false): Promise<number> => {
+    if (targets.length === 0) return 0
     setRunning(true)
     setPanelError(null)
-    setSummary(null)
-    setUsageTotal(0)
+    /*
+     * 分步向导下一步时不重置：花费是整轮的累计值，每步清零会让人以为这一步不要钱。
+     * 整轮开始时由 handleStart 显式把 usageRef 归零。
+     */
+    if (!step) setSummary(null)
     setUnitProgress({})
     stopRef.current = false
     const draftResults: Partial<Record<string, ChapterData>> = { ...resultsRef.current }
@@ -295,7 +431,8 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     const draftVerdicts: Partial<Record<string, QualityGateVerdict | null>> = { ...verdictsRef.current }
     let succeeded = 0
     let failed = 0
-    let usageAcc = 0
+    let usageAcc = usageRef.current
+    setUsageTotal(usageAcc)
     for (const chapter of targets) {
       if (stopRef.current) break
       setStatuses((prev) => ({ ...prev, [chapter]: 'running' }))
@@ -357,6 +494,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           }
           for (const [key, value] of Object.entries(response.fields)) merged[key] = value
           usageAcc += response.usage?.totalTokens ?? 0
+          usageRef.current = usageAcc
           setUsageTotal(usageAcc)
           unitDone += 1
           setUnitProgress((prev) => ({ ...prev, [chapter]: { done: unitDone, total: units.length } }))
@@ -416,7 +554,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           // 首章即失败：大概率本地模型服务不可用，不再逐个重试后续章节
           setSummary(t('aiFull.summaryInterrupted', { message }))
           setRunning(false)
-          return
+          return 0
         }
       }
     }
@@ -428,13 +566,14 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
           extra: failed > 0 ? t('aiFull.summaryStoppedFailed', { count: failed }) : ''
         })
       )
-      return
+      return succeeded
     }
     if (failed > 0) {
       setSummary(t('aiFull.summaryFailed', { succeeded, failed }))
     } else {
       setSummary(t('aiFull.summaryDone', { succeeded }))
     }
+    return succeeded
   }
   /**
    * 整篇生成属「大范围云端调用」（v0.5 DD-17）⇒ **首次点击只进入内联确认态**，
@@ -464,59 +603,234 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
     verdictsRef.current = {}
     setVerdicts({})
     setErrors({})
+    setSummary(null)
+    setFinished(false)
+    usageRef.current = 0
+    setUsageTotal(0)
+    appliedRef.current = []
+    setApplied([])
+    skippedRef.current = []
+    setSkipped([])
+    setStageGate(null)
+    setReviewing(false)
     const initial: Partial<Record<string, ChapterStatus>> = {}
     for (const chapter of plan.order) initial[chapter] = 'pending'
     setStatuses(initial)
-    await runChapters(plan.order)
+    /*
+     * 分步：确认方向后**只生成第一章**，剩下的等这一章被采纳/跳过后再走。
+     * 旧实现（await runChapters(plan.order)）会一口气跑完全部 15 章，
+     * 确认门被放在最贵一步之后——12 分钟 / 31 万 token 花完才轮到人点头。
+     */
+    const first = plan.order[0]
+    setCursorChapter(first ?? null)
+    if (first !== undefined) await generateChapter(first)
   }
 
   const handleRetry = async (): Promise<void> => {
-    await runChapters(failedChapters)
+    const targets = failedChapters
+    /*
+     * 分步模式下「重试失败小节」只该重试**当前这一章**：把整批失败章一次跑完，
+     * 等于把刚拆掉的「一键全量」从后门放回来。
+     */
+    if (currentChapter !== null) {
+      if (!targets.includes(currentChapter)) return
+      await generateChapter(currentChapter)
+      return
+    }
+    await runChapters(targets)
   }
 
   /** 重生成「确定性质量门判定为净恶化」的章：把主结论从记录变成可行动 */
   const handleRegen = async (): Promise<void> => {
+    if (currentChapter !== null) {
+      await generateChapter(currentChapter)
+      return
+    }
     await runChapters(regenChapters)
   }
 
-  /** 应用并保存：逐章写入（含 meta 种子与 systems 深合并），首章顺带写回风格/类型 key */
+  /**
+   * 把指定章写进策划书（含 meta 种子与 systems 深合并），首章顺带写回风格/类型 key。
+   *
+   * 从 handleApply 里抽出来：分步向导「采纳本章」要**逐章**写盘，而草稿恢复的
+   * 「全部应用并保存」仍是批量写盘；两条路径必须写同一套合并规则，否则
+   * 「逐章采纳」和「批量应用」会产出不一样的文件——那比不提供逐章采纳更糟。
+   */
+  const saveChapters = async (chapters: readonly string[]): Promise<CeshuDocument> => {
+    let updated = doc
+    for (let index = 0; index < chapters.length; index++) {
+      const chapter = chapters[index]
+      const generated = resultsRef.current[chapter] as ChapterData
+      let data: ChapterData
+      if (chapter === 'meta') {
+        data = { ...updated.meta, ...plan.metaSeed, ...generated }
+        data.gdd_scope = updated.meta.gdd_scope
+        // 应用档 meta 的字段表里含 doc_kind（人定字段），AI 整章生成可能写出 'game'。
+        // 一键生成不该把用户选的档位悄悄改回游戏档，这里显式保留。
+        if (isApp) data.doc_kind = updated.meta.doc_kind
+      } else if (chapter === 'systems') {
+        data = mergeSystems(updated.systems, generated)
+      } else {
+        data = { ...chapterDataForDoc(updated, chapter), ...generated }
+      }
+      updated = await window.mbApi.ceshu.saveChapter({
+        id: ceshuId,
+        chapter,
+        data,
+        style: index === 0 && plan.styleKey ? plan.styleKey : undefined,
+        moduleType: index === 0 && plan.typeKey ? plan.typeKey : undefined
+      })
+    }
+    return updated
+  }
+
+  /**
+   * 生成**一章**（向导里的「这一步」）。返回是否成功。
+   *
+   * 成功即进入 review 态：不自动写盘。用户原话是「要步骤都来」，
+   * 每章都该有一个「看过了，写进去」的动作，而不是跑完直接入库。
+   */
+  const generateChapter = async (chapter: string): Promise<boolean> => {
+    setReviewing(false)
+    const ok = await runChapters([chapter], true)
+    if (stopRef.current) return false
+    if (ok > 0) {
+      setReviewing(true)
+      setSummary(null)
+      return true
+    }
+    return false
+  }
+
+  /**
+   * 采纳当前章并前进。
+   *
+   * 阶段门在**写盘之后**再过一道：人刚看完「立项最后一章」，此刻正是问
+   * 「要不要继续展开研发阶段」的时候；放到写盘前会让人误以为不点头就不保存。
+   */
+  const handleAdopt = async (): Promise<void> => {
+    const chapter = currentChapter
+    if (chapter === null || resultsRef.current[chapter] === undefined) return
+    setApplying(true)
+    setPanelError(null)
+    try {
+      const updated = await saveChapters([chapter])
+      appliedRef.current = [...appliedRef.current, chapter]
+      setApplied(appliedRef.current)
+      setDocSnapshot(updated)
+      onApplied(updated, [chapter])
+      setReviewing(false)
+      await advanceAfter(chapter)
+    } catch (error) {
+      setPanelError(toErrorMessage(error))
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  /** 跳过当前章：不写盘（正文保持原样），但不再阻塞流程 */
+  const handleSkip = async (): Promise<void> => {
+    const chapter = currentChapter
+    if (chapter === null) return
+    skippedRef.current = [...skippedRef.current, chapter]
+    setSkipped(skippedRef.current)
+    setReviewing(false)
+    await advanceAfter(chapter)
+  }
+
+  /**
+   * 收尾：整轮结束后停在这里，不再自动生成下一阶段。
+   *
+   * 之所以不自动滚动到下一阶段：跨阶段是「要不要继续投入」的决策点，
+   * 未读过的章一次跑完正是这次要改掉的行为。
+   */
+  const finishWizard = (): void => {
+    const done = appliedRef.current.length
+    const skippedCount = skippedRef.current.length
+    setCursorChapter(null)
+    setStageGate(null)
+    setFinished(true)
+    setSummary(t('aiFull.wizardDone', { applied: done, skipped: skippedCount, total: plan.order.length }))
+  }
+
+  /** 当前章处理完 ⇒ 按 planNextStep 决定「下一章」还是「停一道阶段门」 */
+  const advanceAfter = async (finishedChapter: string): Promise<void> => {
+    const index = plan.order.indexOf(finishedChapter)
+    if (index < 0) {
+      finishWizard()
+      return
+    }
+    const next = planNextStep(plan.order, index, finishedChapter)
+    if (next.cursor >= plan.order.length) {
+      finishWizard()
+      return
+    }
+    const nextChapter = plan.order[next.cursor] as string
+    setCursorChapter(nextChapter)
+    if (next.stageGate !== null) {
+      /*
+       * 阶段门：先记下「下一章是谁」，但**不生成**。
+       * 门上的两个出口——继续（生成下一章）/ 停在这里——都必须显式点，
+       * 不给「默认继续」，否则门就形同虚设。
+       */
+      setGateNextChapter(nextChapter)
+      setStageGate(next.stageGate)
+      return
+    }
+    setStageGate(null)
+    await generateChapter(nextChapter)
+  }
+
+  /** 阶段门「继续」：放行下一章（此时才真正调模型） */
+  const handleGateGo = async (): Promise<void> => {
+    const next = gateNextChapter
+    setStageGate(null)
+    setGateNextChapter(null)
+    if (next === null) {
+      finishWizard()
+      return
+    }
+    setCursorChapter(next)
+    await generateChapter(next)
+  }
+
+  /** 阶段门「先停在这里」：本轮结束，已写盘的章都在，随时能再开一轮 */
+  const handleGateStop = (): void => {
+    finishWizard()
+  }
+
+  /**
+   * 应用并保存（兜底）：处理「草稿恢复」等非向导路径留下的**未写盘**章节。
+   *
+   * 向导自己的路径已逐章落盘，这里必须按 applied 过滤，否则会把同一章
+   * 再写一遍——虽然结果相同，但白跑一次 IPC，还会覆盖刚被用户手工改过的正文。
+   */
   const handleApply = async (): Promise<void> => {
-    const chapters = plan.order.filter((chapter) => resultsRef.current[chapter] !== undefined)
+    const chapters = plan.order.filter(
+      (chapter) => resultsRef.current[chapter] !== undefined && !appliedRef.current.includes(chapter)
+    )
     if (chapters.length === 0) return
     setApplying(true)
     setPanelError(null)
     try {
-      let updated = doc
-      for (let index = 0; index < chapters.length; index++) {
-        const chapter = chapters[index]
-        const generated = resultsRef.current[chapter] as ChapterData
-        let data: ChapterData
-        if (chapter === 'meta') {
-          data = { ...updated.meta, ...plan.metaSeed, ...generated }
-          data.gdd_scope = updated.meta.gdd_scope
-          // 应用档 meta 的字段表里含 doc_kind（人定字段），AI 整章生成可能写出 'game'。
-          // 一键生成不该把用户选的档位悄悄改回游戏档，这里显式保留。
-          if (isApp) data.doc_kind = updated.meta.doc_kind
-        } else if (chapter === 'systems') {
-          data = mergeSystems(updated.systems, generated)
-        } else {
-          data = { ...chapterDataForDoc(updated, chapter), ...generated }
-        }
-        updated = await window.mbApi.ceshu.saveChapter({
-          id: ceshuId,
-          chapter,
-          data,
-          style: index === 0 && plan.styleKey ? plan.styleKey : undefined,
-          moduleType: index === 0 && plan.typeKey ? plan.typeKey : undefined
-        })
-      }
+      const updated = await saveChapters(chapters)
       // 已写盘 ⇒ 草稿快照完成使命，清掉；否则下次打开还会提示「有未应用结果」
       clearAiFullDraft(ceshuId)
       setDraftPending(null)
       setDraftNotice(null)
-      resultsRef.current = {}
-      setResults({})
-      setStatuses({})
+      const merged = [...appliedRef.current, ...chapters]
+      appliedRef.current = merged
+      setApplied(merged)
+      /*
+       * 结果留一份在内存里：向导中途恢复后「生成结果速览」仍要能看，
+       * 一键清空会让刚写进去的内容从面板上消失（用户会以为没保存）。
+       */
+      setStatuses((prev) => {
+        const next = { ...prev }
+        for (const chapter of chapters) next[chapter] = 'done'
+        return next
+      })
+      setDocSnapshot(updated)
       setSummary(t('aiFull.applied', { count: chapters.length }))
       onApplied(updated, chapters)
     } catch (error) {
@@ -584,7 +898,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             className="form-input"
             data-testid="ai-full-name"
             value={gameName}
-            disabled={locked}
+            disabled={formLocked}
             placeholder={t(isApp ? 'aiFull.appNamePlaceholder' : 'aiFull.namePlaceholder')}
             onChange={(event) => setGameName(event.target.value)}
           />
@@ -595,7 +909,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 className="form-select"
                 data-testid="ai-full-type"
                 value={gameType}
-                disabled={locked}
+                disabled={formLocked}
                 onChange={(event) => setGameType(event.target.value)}
               >
                 {FULL_GEN_GAME_TYPES.map((item) => (
@@ -615,7 +929,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 className="form-select"
                 data-testid="ai-full-style"
                 value={style}
-                disabled={locked}
+                disabled={formLocked}
                 onChange={(event) => setStyle(event.target.value)}
               >
                 {FULL_GEN_STYLES.map((item) => (
@@ -629,7 +943,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 className="form-select"
                 data-testid="ai-full-biz"
                 value={businessModel}
-                disabled={locked}
+                disabled={formLocked}
                 onChange={(event) => setBusinessModel(event.target.value)}
               >
                 {FULL_GEN_BUSINESS_MODELS.map((item) => (
@@ -645,7 +959,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 className="form-input"
                 data-testid="ai-full-refs"
                 value={references}
-                disabled={locked}
+                disabled={formLocked}
                 placeholder={t('aiFull.refsPlaceholder')}
                 onChange={(event) => setReferences(event.target.value)}
               />
@@ -660,7 +974,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 type="checkbox"
                 data-testid={`ai-full-platform-${platform}`}
                 checked={platforms.includes(platform)}
-                disabled={locked}
+                disabled={formLocked}
                 onChange={() => togglePlatform(platform)}
               />
               {platform}
@@ -674,7 +988,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             data-testid="ai-full-desc"
             rows={4}
             value={description}
-            disabled={locked}
+            disabled={formLocked}
             placeholder={t(isApp ? 'aiFull.appDescPlaceholder' : 'aiFull.descPlaceholder')}
             onChange={(event) => setDescription(event.target.value)}
           />
@@ -692,7 +1006,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               name="ai-full-scope"
               data-testid="ai-full-scope-lite"
               checked={scope === GDD_SCOPE_LITE}
-              disabled={locked}
+              disabled={formLocked}
               onChange={() => setScope(GDD_SCOPE_LITE)}
             />
             {t('aiFull.scopeLite', { count: contentChapterCount(GDD_SCOPE_LITE) })}
@@ -703,7 +1017,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               name="ai-full-scope"
               data-testid="ai-full-scope-full"
               checked={scope === GDD_SCOPE_FULL}
-              disabled={locked}
+              disabled={formLocked}
               onChange={() => setScope(GDD_SCOPE_FULL)}
             />
             {t('aiFull.scopeFull', { count: contentChapterCount(GDD_SCOPE_FULL) })}
@@ -713,7 +1027,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               type="checkbox"
               data-testid="ai-full-market"
               checked={includeMarket}
-              disabled={locked || scope === GDD_SCOPE_LITE}
+              disabled={formLocked || scope === GDD_SCOPE_LITE}
               onChange={(event) => setIncludeMarket(event.target.checked)}
             />
             {t('aiFull.includeMarket')}
@@ -723,7 +1037,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
               type="checkbox"
               data-testid="ai-full-risk"
               checked={includeRisk}
-              disabled={locked || scope === GDD_SCOPE_LITE}
+              disabled={formLocked || scope === GDD_SCOPE_LITE}
               onChange={(event) => setIncludeRisk(event.target.checked)}
             />
             {t('aiFull.includeRisk')}
@@ -740,7 +1054,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 name="ai-full-stage"
                 data-testid={`ai-full-stage-${value}`}
                 checked={stage === value}
-                disabled={locked}
+                disabled={formLocked}
                 onChange={() => setStage(value)}
               />
               {t(
@@ -801,6 +1115,104 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         </div>
       </div>
 
+      {/*
+        * 分步向导的正文预览（2026-11-11）：一章生成完先停在这里，让人看一眼再决定
+        * 采纳 / 重生成 / 跳过。放在按钮区之上、进度列表之下——视线顺序是
+        * 「跑到哪了 → 这章写了什么 → 我要怎么办」。
+        */}
+      {currentChapter !== null && reviewing && (
+        <div className="ai-full-judge" data-testid="ai-full-wizard">
+          <div className="ai-full-judge-head">
+            {t('aiFull.wizardProgress', {
+              index: currentIndex + 1,
+              total: plan.order.length
+            })}
+            {' · '}
+            {t('aiFull.wizardChapter', { section: chapterLabelForDoc(doc, currentChapter) })}
+          </div>
+          <div className="ai-gen-hint">{t('aiFull.wizardHint')}</div>
+          <div className="ai-full-judge-head">
+            {t('aiFull.wizardPreviewHead', { words: chapterPreview.words })}
+          </div>
+          {chapterPreview.rows.length === 0 ? (
+            <div className="ai-full-pitch-empty" data-testid="ai-full-wizard-empty">
+              {t('aiFull.wizardPreviewEmpty')}
+            </div>
+          ) : (
+            <dl className="ai-full-brief-list" data-testid="ai-full-wizard-preview">
+              {chapterPreview.rows.map((row) => (
+                <div className="ai-full-brief-item" key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd className="ai-full-brief-value">{row.value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          <div className="ai-full-brief-actions">
+            <button
+              type="button"
+              className="btn primary"
+              data-testid="ai-full-adopt"
+              disabled={locked}
+              onClick={() => void handleAdopt()}
+            >
+              {t('aiFull.wizardAdopt')}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="ai-full-redo"
+              disabled={locked}
+              onClick={() => void handleRegen()}
+            >
+              {t('aiFull.wizardRedo')}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="ai-full-skip"
+              disabled={locked}
+              onClick={() => void handleSkip()}
+            >
+              {t('aiFull.wizardSkip')}
+            </button>
+          </div>
+        </div>
+      )}
+      {/* 阶段门：跨 concept → production → release 时显式停一次，绝不默认继续 */}
+      {stageGate !== null && gateStageLabel !== null && (
+        <div className="ai-full-brief" data-testid="ai-full-gate">
+          <div className="ai-full-brief-head">
+            {t('aiFull.wizardGateHead', { stage: gateStageLabel })}
+          </div>
+          <div className="ai-gen-hint">
+            {t('aiFull.wizardGateBody', {
+              next: gateStageLabel,
+              count: gateNextChapter === null ? 0 : countRemainingInStage(plan.order, applied, stageOfChapter(gateNextChapter as ChapterKey))
+            })}
+          </div>
+          <div className="ai-full-brief-actions">
+            <button
+              type="button"
+              className="btn primary"
+              data-testid="ai-full-gate-go"
+              disabled={locked}
+              onClick={() => void handleGateGo()}
+            >
+              {t('aiFull.wizardGateGo', { next: gateStageLabel })}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              data-testid="ai-full-gate-stop"
+              disabled={locked}
+              onClick={handleGateStop}
+            >
+              {t('aiFull.wizardGateStop')}
+            </button>
+          </div>
+        </div>
+      )}
       <div className="editor-actions">
         {confirming && (
           <div className="ai-full-brief" data-testid="ai-full-confirm" ref={briefRef}>
@@ -841,7 +1253,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 data-testid="ai-full-brief-note"
                 rows={3}
                 value={briefNote}
-                disabled={locked}
+                disabled={formLocked}
                 placeholder={t('aiFull.briefNotePlaceholder')}
                 onChange={(event) => setBriefNote(event.target.value)}
               />
@@ -852,7 +1264,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
                 type="button"
                 className="btn primary"
                 data-testid="ai-full-confirm-yes"
-                disabled={locked}
+                disabled={formLocked}
                 onClick={() => void handleStart()}
               >
                 {t('aiFull.briefConfirm')}
@@ -874,7 +1286,7 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
             type="button"
             className="btn primary"
             data-testid="ai-full-start"
-            disabled={locked}
+            disabled={formLocked}
             onClick={() => void handleStart()}
           >
             {t('aiFull.start')}
@@ -913,11 +1325,16 @@ export default function AiFullGeneratePanel({ ceshuId, doc, onApplied, onClose }
         >
           {t('aiFull.regen', { count: regenChapters.length })}
         </button>
+        {/*
+          * 「全部应用并保存」在分步向导里是**兜底**（草稿恢复等非向导路径）。
+          * 因此按「已生成但未写盘」的章数判断可用性，而不是 appliedCount——
+          * 后者含已写盘的章，跑完一轮后会一直亮着，看着像还有东西没保存。
+          */}
         <button
           type="button"
           className="btn"
           data-testid="ai-full-apply"
-          disabled={locked || appliedCount === 0}
+          disabled={locked || pendingApplyChapters.length === 0}
           onClick={() => void handleApply()}
         >
           {t('aiFull.apply')}
