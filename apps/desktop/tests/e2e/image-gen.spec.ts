@@ -14,6 +14,8 @@ import { launchApp, waitReady } from './helpers/app'
  * 真实云端调用（需 API Key + 计费）**不在 E2E 范围**——由人工/CI 带 Key 验证。
  */
 test('AI 生图：面板打开 → 前置校验 → Key 进钥匙串且本地无明文', async () => {
+  // 断言依赖系统钥匙串（safeStorage），Linux 无头 runner 没有可用的 keyring
+  test.skip(process.platform === 'linux', 'Linux 无头 runner 缺少系统钥匙串，safeStorage 行为不同')
   const userDataDir = mkdtempSync(join(tmpdir(), 'mb-imagegen-e2e-'))
   const app = await launchApp(userDataDir)
 
