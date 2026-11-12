@@ -100,3 +100,29 @@ data/
 # Trae IDE 本地配置（空目录/规则，不参与版本管理）
 .trae/
 
+# 临时验证产物（导出试跑 / 逆向样例），仅本地验证用
+.scratch/
+
+# ── 凭据 / 私钥：一律不入库（开源协作前提）──────────────────────────
+# 环境变量文件；只允许提交无真值的 .env.example 模板
+.env
+.env.*
+!.env.example
+# 证书与私钥
+*.pem
+*.key
+*.pfx
+*.p12
+*.keystore
+*.jks
+*.ppk
+id_rsa*
+id_ed25519*
+# 应用设置导出 / 旧版备份：可能含 api_key 明文或加密串
+**/api_config*.json
+*.legacy-bak
+# 覆盖式补充：任何层级的数据目录（真正的运行时库与设置）
+**/data/settings/
+
+# electron-builder 构建资源（应用图标）：上面第 3 行的 `build/` 会连它一起忽略，这里放行
+!apps/desktop/build/

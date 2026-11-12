@@ -20,6 +20,10 @@ on:
         required: false
         default: 'manual'
 
+# 发布 Release 需要写权限；默认 token 只有 contents: read，会 403
+permissions:
+  contents: write
+
 jobs:
   package:
     name: 打包 ${{ matrix.os }}

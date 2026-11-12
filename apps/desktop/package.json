@@ -4,6 +4,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "墨白可视化编辑 · TypeScript 重写版（Electron + React + typed IPC + SQLite）",
+  "homepage": "https://github.com/HAIJAIWE/GameEditorApp",
+  "author": {
+    "name": "墨白",
+    "email": "3253932980@qq.com"
+  },
   "main": "./out/main/index.js",
   "scripts": {
     "postinstall": "node node_modules/electron/install.js",
@@ -69,6 +74,7 @@
     "appId": "com.mobai.visualeditor",
     "productName": "墨白可视化编辑",
     "copyright": "Copyright © 2026 墨白",
+    "artifactName": "mobai-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "dist"
     },
@@ -90,8 +96,20 @@
     },
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.developer-tools"
     },
@@ -100,7 +118,9 @@
         "AppImage",
         "deb"
       ],
-      "category": "Development"
+      "category": "Development",
+      "executableName": "mobai",
+      "maintainer": "墨白 <3253932980@qq.com>"
     }
   }
 }
