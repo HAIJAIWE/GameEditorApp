@@ -37,7 +37,7 @@ const NL = String.fromCharCode(10)
 function clipDigestValue(value: string, max: number): string {
   const flat = value
     .split(NL)
-    .map((line) => line.trim().replace(/^[\-*·•>#]+\s*/, '').replace(/\*\*/g, ''))
+    .map((line) => line.trim().replace(/^[-*·•>#]+\s*/, '').replace(/\*\*/g, ''))
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim()

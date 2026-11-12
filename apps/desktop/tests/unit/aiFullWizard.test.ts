@@ -4,7 +4,7 @@ import {
   countRemainingInStage,
   locateWizardPosition,
   planNextStep
-} from '../../src/renderer/src/components/agent/aiFullWizard'
+} from '../../src/renderer/src/components/agent'
 
 /**
  * 分步生成向导的纯逻辑（2026-11-11，用户原话「可以，但不一键生成，要步骤都来」）。

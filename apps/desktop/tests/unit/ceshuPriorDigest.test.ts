@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { chapterLabelForDoc, createDefaultCeshu, visibleChaptersForDoc } from '@mobai/shared/ceshu/model'
-import { buildChapterOrder, buildChapterPrompt } from '@mobai/shared/ceshu/prompts'
-// buildPriorChaptersDigest 只为单测导出，未进 prompts 桶，故深导入源文件
-import { buildPriorChaptersDigest } from '@mobai/shared/ceshu/prompts/ceshuAi'
+import { buildChapterOrder, buildChapterPrompt, buildPriorChaptersDigest } from '@mobai/shared/ceshu/prompts'
 
 /**
  * 整篇生成的「前文要点」：把当前章之前已写好的章节压成带上限的摘要注入提示词。

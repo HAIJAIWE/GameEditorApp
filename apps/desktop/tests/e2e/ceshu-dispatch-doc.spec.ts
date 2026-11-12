@@ -57,7 +57,7 @@ test('施工看板「派这一份」：不选目录也能派指定那份', async
     // 1. 派工单点名的是点出来的那份（不是自动选择器挑的下一份）
     const input = window.getByTestId('digital-input')
     await expect(input).toHaveValue(/派工单/, { timeout: 10_000 })
-    await expect(input).toHaveValue(new RegExp('文档：\`' + String(pickedPath).replace(/[/.]/g, '\\$&') + '\`'))
+    await expect(input).toHaveValue(new RegExp('文档：`' + String(pickedPath).replace(/[/.]/g, '\\$&') + '`'))
 
     // 2. 交接包就地导出到库的 exports 下（没有目录选择框）
     const bundleDir = join(libraryDir(userDataDir), 'exports', '未命名游戏-交接包')

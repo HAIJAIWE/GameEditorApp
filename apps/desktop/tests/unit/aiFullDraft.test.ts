@@ -7,7 +7,7 @@ import {
   loadAiFullDraft,
   saveAiFullDraft,
   type AiFullDraft
-} from '../../src/renderer/src/components/agent/aiFullDraft'
+} from '../../src/renderer/src/components/agent'
 
 /**
  * 单测守的是两件事：窗口意外关闭后还能不能把整轮生成捡回来；以及
