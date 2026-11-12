@@ -12,7 +12,6 @@ const { dirname, join } = require('node:path')
 
 const SIZE = 1024
 const SCALE = SIZE / 32
-const RADIUS = Math.round(7 * SCALE)
 
 const CRC_TABLE = (() => {
   const table = new Int32Array(256)
