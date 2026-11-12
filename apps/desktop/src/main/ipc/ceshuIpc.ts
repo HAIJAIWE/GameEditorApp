@@ -323,7 +323,7 @@ export function registerCeshuIpc(deps: IpcHandlerDeps, handle: IpcRegistrar, llm
       writeFileSync(progressPath, markdown, 'utf-8')
       written = true
     } catch {
-      written = false
+      // 保留初始 false：写回失败时如实返回 written=false
     }
     return {
       progressPath,
