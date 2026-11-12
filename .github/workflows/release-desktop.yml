@@ -43,9 +43,7 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: 安装依赖
-        # 用 install 而非 ci：lockfile 在 Windows 生成，npm ci 不会补装
-        # Linux/macOS 平台的原生可选依赖（rollup/esbuild），会导致构建失败。
-        run: npm install --no-audit --no-fund
+        run: npm ci
 
       - name: 构建并打包（electron-vite build + electron-builder）
         working-directory: apps/desktop
