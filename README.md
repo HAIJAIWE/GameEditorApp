@@ -60,7 +60,7 @@
 需要先装好 **Node.js 22**，以及 C++ 构建工具（Windows 装 Visual Studio Build Tools，macOS 装 Xcode Command Line Tools）和 Python，用于编译 `better-sqlite3` 原生模块。
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:HAIJAIWE/GameEditorApp.git
 cd GameEditorApp
 
 # 安装依赖（monorepo，一次装齐 apps/* 与 packages/*；会下载 Electron 二进制）
