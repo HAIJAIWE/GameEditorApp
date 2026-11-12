@@ -4,19 +4,22 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'desktop/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/desktop-ci.yml'
   pull_request:
     paths:
-      - 'desktop/**'
+      - 'apps/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/desktop-ci.yml'
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: desktop
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -26,7 +29,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: 安装依赖
         run: npm ci
@@ -41,4 +44,4 @@ jobs:
         run: npm test
 
       - name: 端到端测试（含构建）
-        run: xvfb-run -a npm run test:e2e
+        run: xvfb-run -a npm run e2e

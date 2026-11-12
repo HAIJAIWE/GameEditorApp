@@ -1,13 +1,12 @@
 # 贡献指南（TS + Electron 版）
 
-感谢你考虑为墨白可视化编辑器贡献代码。本仓库的现役产品是 `desktop/` 下的 **TypeScript + Electron** 版本（早期版本已于 2026-10-10 移除）。
+感谢你考虑为墨白可视化编辑器贡献代码。本仓库是 monorepo，现役产品是 `apps/desktop/` 下的 **TypeScript + Electron** 版本（早期版本已于 2026-10-10 移除）。
 
 ## 开发环境
 
 1. 克隆仓库
-2. 进入桌面端目录：`cd desktop`
-3. 安装依赖：`npm install`（会下载 Electron 二进制并编译 `better-sqlite3` 原生模块，需要本机 旧版 与 C++ 构建工具）
-4. 启动开发：`npm run dev`
+2. 在仓库根目录安装依赖：`npm install`（workspaces 一次装齐；会下载 Electron 二进制并编译 `better-sqlite3` 原生模块，需要本机 Python 与 C++ 构建工具）
+3. 启动开发：`npm run dev`
 
 > 推荐 Node 22（与 CI 一致）。
 
@@ -23,10 +22,10 @@
 
 - `shared/` **不得** import `main/`（需要 Node 能力的代码应放在 `main/`）。
 - **新增 IPC 通道必须登四层**，缺一层 `tsc` 即报错（这是好事）：
-  1. `shared/schemas.ts` — zod 入参/出参 schema
-  2. `shared/ipc.ts` — `IpcContract` 通道定义
-  3. `shared/service/api.ts` — `MbApi` 渲染端接口
-  4. `preload/index.ts` — 预加载桥
+  1. `packages/shared/src/schema/` — zod 入参/出参 schema
+  2. `packages/shared/src/ipc.ts` — `IpcContract` 通道定义
+  3. `packages/shared/src/service/api.ts` — `MbApi` 渲染端接口
+  4. `apps/desktop/src/preload/index.ts` — 预加载桥
 - zod **可选字段用 `.optional()` 而非 `.default()`**（`default` 会让输出变必填、调用点全报错）。
 - `preload` 不要硬编码内联 config 类型，改用 `IpcContract['<channel>']['req']`，避免漏加字段被 zod 静默剥掉。
 

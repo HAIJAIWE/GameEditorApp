@@ -20,6 +20,6 @@
     "test": "npm --prefix apps/desktop run test",
     "typecheck": "npm --prefix apps/desktop run typecheck",
     "lint": "node node_modules/eslint/bin/eslint.js apps/desktop/src apps/desktop/tests apps/desktop/scripts packages/shared/src packages/agent-core/src packages/client-ui/src",
-    "e2e": "npm --prefix apps/desktop run e2e"
+    "e2e": "npm --prefix apps/desktop run test:e2e"
   }
 }

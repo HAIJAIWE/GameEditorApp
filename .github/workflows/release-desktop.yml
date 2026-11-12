@@ -1,13 +1,13 @@
 name: release-desktop
 
 # 替代已移除的 早期版本 release.yml（PyInstaller）。
-# 现役产品是 desktop/ 下的 TypeScript + Electron 版，用 electron-builder 出跨平台安装包。
+# 现役产品是 apps/desktop 下的 TypeScript + Electron 版，用 electron-builder 出跨平台安装包。
 #
 # 触发方式：
 #   1. 打 tag `desktop-v*` 并推送 → 自动构建三平台安装包并发布为 GitHub Release（草稿）。
 #   2. 手动触发（workflow_dispatch）→ 仅构建并上传产物（Artifacts），不发布 Release。
 #
-# 前置：包配置见 desktop/package.json 的 `dist` 脚本与 `build` 段（electron-builder）。
+# 前置：包配置见 apps/desktop/package.json 的 `dist` 脚本与 `build` 段（electron-builder）。
 
 on:
   push:
@@ -31,9 +31,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
-    defaults:
-      run:
-        working-directory: desktop
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -43,12 +40,13 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: desktop/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: 安装依赖
         run: npm ci
 
       - name: 构建并打包（electron-vite build + electron-builder）
+        working-directory: apps/desktop
         run: npm run dist
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,11 +56,11 @@ jobs:
         with:
           name: mobai-${{ matrix.os }}
           path: |
-            desktop/dist/*.exe
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
-            desktop/dist/*.AppImage
-            desktop/dist/*.deb
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
           if-no-files-found: ignore
 
       - name: 发布 GitHub Release（仅 tag 触发）
@@ -71,10 +69,10 @@ jobs:
         with:
           draft: true
           files: |
-            desktop/dist/*.exe
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
-            desktop/dist/*.AppImage
-            desktop/dist/*.deb
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/*.AppImage
+            apps/desktop/dist/*.deb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
