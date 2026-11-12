@@ -20,6 +20,9 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    env:
+      # 用例按东八区断言 cron 推进（runner 默认 UTC）
+      TZ: Asia/Shanghai
     steps:
       - name: 检出代码
         uses: actions/checkout@v4

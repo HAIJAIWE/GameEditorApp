@@ -59,7 +59,8 @@ describe('脚本构造', () => {
   })
 })
 
-describe('system.computer（注入脚本执行）', () => {
+// 注入脚本执行依赖 Windows PowerShell + 桌面会话，Linux/macOS 上技能本身返回 EUNSUPPORTED
+describe.skipIf(process.platform !== 'win32')('system.computer（注入脚本执行）', () => {
   function make(result: { stdout: string; stderr: string; code: number } = { stdout: 'ok', stderr: '', code: 0 }) {
     const scripts: string[] = []
     const skill = createComputerSkill({

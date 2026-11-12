@@ -163,6 +163,14 @@ GameEditorApp/
 - [CONTRIBUTING.md](./CONTRIBUTING.md)：开发约定、IPC 分层铁律、提交规范
 - [CHANGELOG.md](./CHANGELOG.md)：版本变更记录
 
+## 贡献者
+
+- **墨白（HAIJAIWE）**：项目发起、产品设计与维护
+- **Trae**：AI 编程协作，参与 TS 重写版的架构与实现
+- **DSHWB（WorkBuddy）**：AI 编程协作，参与早期版本与工程基建
+
+> GitHub 侧栏的 Contributors 只统计与 git 提交账号关联的作者，因此只显示 HAIJAIWE；实际协作方以上表为准。
+
 ## 许可证
 
 [MIT](./LICENSE)

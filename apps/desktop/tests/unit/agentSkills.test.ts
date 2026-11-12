@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 
 import { SkillDispatcher } from '@mobai/agent-core/execution/dispatcher'
 import { OperationLogStore } from '@mobai/agent-core/store/operationLogStore'
@@ -542,9 +544,11 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
 
   it('export：路径被沙箱在导出目录内（越界拒绝且不触发导出）；显式相对路径与格式优先；非法格式回落默认', async () => {
     const seen: string[] = []
+    // 用平台无关的临时目录做导出根：写死 `D:/exports` 在 Linux/CI 上会被当成相对路径
+    const exportDir = join(tmpdir(), 'mb-ceshu-exports')
     const skill = createCeshuSkill({
       ceshuManager: makeCeshuManager(docs),
-      exportDir: 'D:/exports',
+      exportDir,
       exportDocument: async (_doc, format, targetPath) => {
         seen.push(`${format}|${targetPath}`)
         return { filePath: targetPath, format, bytes: 1 }
@@ -552,7 +556,8 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     })
 
     // 越界绝对路径 → 拒绝，且绝不调用导出管道（守卫必须真的拦住，而非仅提示）
-    const escape = await skill.execute({ action: 'export', ceshu_id: 'c1', path: 'D:/out/书' }, {})
+    const outside = resolve(exportDir, '..', 'out', '书')
+    const escape = await skill.execute({ action: 'export', ceshu_id: 'c1', path: outside }, {})
     expect(escape.success).toBe(false)
     expect(escape.error).toContain('导出路径必须位于库的导出目录内')
     expect(seen).toHaveLength(0)
@@ -568,8 +573,9 @@ describe('system.ceshu 技能（A1-5 写操作）', () => {
     // 非法格式 + 无路径 → 回落 markdown + 默认导出目录
     await skill.execute({ action: 'export', ceshu_id: 'c1', format: '不存在的格式' }, {})
     const normalized = seen.map((entry) => entry.replace(/\\/gu, '/'))
-    expect(normalized[0]).toBe('excel|D:/exports/sub/书')
-    expect(normalized[1]?.startsWith('markdown|D:/exports/')).toBe(true)
+    const rootSlash = exportDir.replace(/\\/gu, '/')
+    expect(normalized[0]).toBe(`excel|${rootSlash}/sub/书`)
+    expect(normalized[1]?.startsWith(`markdown|${rootSlash}/`)).toBe(true)
   })
 })
 
