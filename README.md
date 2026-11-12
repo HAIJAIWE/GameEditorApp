@@ -166,10 +166,6 @@ GameEditorApp/
 ## 贡献者
 
 - **墨白（HAIJAIWE）**：项目发起、产品设计与维护
-- **Trae**：AI 编程协作，参与 TS 重写版的架构与实现
-- **DSHWB（WorkBuddy）**：AI 编程协作，参与早期版本与工程基建
-
-> GitHub 侧栏的 Contributors 只统计与 git 提交账号关联的作者，因此只显示 HAIJAIWE；实际协作方以上表为准。
 
 ## 许可证
 
