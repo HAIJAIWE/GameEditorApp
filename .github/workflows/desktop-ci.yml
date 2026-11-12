@@ -32,7 +32,9 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: 安装依赖
-        run: npm ci
+        # 用 install 而非 ci：lockfile 在 Windows 生成，npm ci 不会补装
+        # Linux 平台的原生可选依赖（rollup/esbuild），会导致单测与构建直接挂。
+        run: npm install --no-audit --no-fund
 
       - name: 代码检查
         run: npm run lint
